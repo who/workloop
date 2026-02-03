@@ -310,19 +310,20 @@ function seededRandom(seed) {
 }
 
 // Generate SVG path for the border based on shape
+// Path must start at top center to match conic-gradient origin (0deg = top)
 function getBorderPath(shape, width, height, borderRadius) {
   if (shape === 'circle') {
-    // For circle, use a circular path
+    // For circle, use a circular path starting from top center, going clockwise
     const cx = width / 2;
     const cy = height / 2;
     const r = Math.min(width, height) / 2;
-    // Start from top center and go clockwise
     return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r}`;
   }
   // For rectangle with border radius
+  // Start from top center and go clockwise to match conic-gradient
   const r = Math.min(parseFloat(borderRadius) || 12, Math.min(width, height) / 2);
-  // Start from top-left corner after radius, go clockwise
-  return `M ${r} 0
+  const midX = width / 2;
+  return `M ${midX} 0
           L ${width - r} 0
           Q ${width} 0 ${width} ${r}
           L ${width} ${height - r}
@@ -330,7 +331,8 @@ function getBorderPath(shape, width, height, borderRadius) {
           L ${r} ${height}
           Q 0 ${height} 0 ${height - r}
           L 0 ${r}
-          Q 0 0 ${r} 0`;
+          Q 0 0 ${r} 0
+          L ${midX} 0`;
 }
 
 function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) {
