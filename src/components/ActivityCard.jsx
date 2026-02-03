@@ -1,4 +1,6 @@
-import React from 'react';
+'use client'
+
+import React, { useState, useEffect } from 'react';
 
 const keyframesStyle = `
 @property --border-angle {
@@ -35,12 +37,10 @@ const baseBorderStyles = {
   pointerEvents: 'none',
 };
 
-function parseColor(color) {
-  // SSR/test fallback: parse hex colors directly without canvas
-  if (typeof document === 'undefined') {
-    return parseHexColor(color);
-  }
+// Default color for initial server render
+const DEFAULT_RGB = [59, 130, 246];
 
+function parseColor(color) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -61,7 +61,7 @@ function parseColor(color) {
   if (match) {
     return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
   }
-  return [59, 130, 246]; // Default blue
+  return DEFAULT_RGB;
 }
 
 function parseHexColor(color) {
@@ -74,11 +74,11 @@ function parseHexColor(color) {
     return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
   }
   // Default fallback
-  return [59, 130, 246];
+  return DEFAULT_RGB;
 }
 
-function createBorderGradient(color) {
-  const [r, g, b] = parseColor(color);
+function createBorderGradient(rgb) {
+  const [r, g, b] = rgb;
   return `conic-gradient(
     from var(--border-angle, 0deg),
     transparent 0deg,
@@ -101,12 +101,18 @@ const contentStyles = {
 };
 
 function ActivityCard({ children, active = true, color = '#3b82f6' }) {
-  const [r, g, b] = parseColor(color);
+  const [rgb, setRgb] = useState(DEFAULT_RGB);
+
+  useEffect(() => {
+    setRgb(parseColor(color));
+  }, [color]);
+
+  const [r, g, b] = rgb;
   const glowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
 
   const borderStyles = {
     ...baseBorderStyles,
-    background: createBorderGradient(color),
+    background: createBorderGradient(rgb),
     animation: active ? 'borderTrace 3s linear infinite' : 'none',
     filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
   };
