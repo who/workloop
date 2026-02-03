@@ -1,12 +1,18 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 
 const keyframesStyle = `
 @property --border-angle {
   syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
+}
+
+@property --particle-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: true;
 }
 
 @keyframes borderTrace {
@@ -35,6 +41,15 @@ const keyframesStyle = `
   }
   100% {
     offset-distance: 100%;
+  }
+}
+
+@keyframes followAngle {
+  from {
+    --particle-angle: 0deg;
+  }
+  to {
+    --particle-angle: 360deg;
   }
 }
 
@@ -654,6 +669,112 @@ function getStyledBorderPath(lineStyle, shape, width, height, borderRadius) {
   }
 }
 
+// Calculate border position from angle (0-360 degrees, 0=top center, clockwise)
+// This matches the conic-gradient coordinate system
+function getPositionFromAngle(angleDeg, shape, width, height, borderRadius) {
+  const cx = width / 2;
+  const cy = height / 2;
+  // Normalize angle to 0-360
+  const normAngle = ((angleDeg % 360) + 360) % 360;
+  const angleRad = (normAngle * Math.PI) / 180;
+
+  if (shape === 'circle') {
+    // For circle, straightforward: position on the circumference
+    const r = Math.min(width, height) / 2;
+    // Angle 0 is at top (negative Y direction), rotating clockwise
+    return {
+      x: cx + r * Math.sin(angleRad),
+      y: cy - r * Math.cos(angleRad),
+    };
+  }
+
+  // For rectangle, find where a ray from center at given angle
+  // intersects the rounded rectangle border
+  const r = Math.min(parseFloat(borderRadius) || 12, Math.min(width, height) / 2);
+
+  // Calculate intersection with rectangle edges
+  // Angle 0 = top center, 90 = right center, 180 = bottom center, 270 = left center
+  const sinA = Math.sin(angleRad);
+  const cosA = Math.cos(angleRad);
+
+  // Calculate diagonal angles to corners (from top, going clockwise)
+  // Top-right corner
+  const diagTR = Math.atan2(width / 2, height / 2) * 180 / Math.PI;
+  // Bottom-right corner
+  const diagBR = 180 - diagTR;
+  // Bottom-left corner
+  const diagBL = 180 + diagTR;
+  // Top-left corner
+  const diagTL = 360 - diagTR;
+
+  let x, y;
+
+  // Determine which edge the angle intersects based on diagonal angles
+  if (normAngle <= diagTR || normAngle > diagTL) {
+    // Top edge
+    // Ray equation: x = cx + t*sinA, y = cy - t*cosA
+    // Intersect with y = 0: cy - t*cosA = 0 => t = cy/cosA
+    const t = cy / cosA;
+    x = cx + t * sinA;
+    y = 0;
+    // Check if we're in the corner region
+    if (x > width - r) {
+      return getCornerPosition(width - r, r, r, normAngle);
+    } else if (x < r) {
+      return getCornerPosition(r, r, r, normAngle);
+    }
+  } else if (normAngle > diagTR && normAngle <= diagBR) {
+    // Right edge
+    // Intersect with x = width: cx + t*sinA = width => t = (width-cx)/sinA
+    const t = (width - cx) / sinA;
+    x = width;
+    y = cy - t * cosA;
+    // Check corners
+    if (y < r) {
+      return getCornerPosition(width - r, r, r, normAngle);
+    } else if (y > height - r) {
+      return getCornerPosition(width - r, height - r, r, normAngle);
+    }
+  } else if (normAngle > diagBR && normAngle <= diagBL) {
+    // Bottom edge
+    // Intersect with y = height: cy - t*cosA = height => t = (cy-height)/cosA = -t
+    const t = (cy - height) / cosA;
+    x = cx + t * sinA;
+    y = height;
+    // Check corners
+    if (x < r) {
+      return getCornerPosition(r, height - r, r, normAngle);
+    } else if (x > width - r) {
+      return getCornerPosition(width - r, height - r, r, normAngle);
+    }
+  } else {
+    // Left edge (normAngle > diagBL && normAngle <= diagTL)
+    // Intersect with x = 0: cx + t*sinA = 0 => t = -cx/sinA
+    const t = -cx / sinA;
+    x = 0;
+    y = cy - t * cosA;
+    // Check corners
+    if (y > height - r) {
+      return getCornerPosition(r, height - r, r, normAngle);
+    } else if (y < r) {
+      return getCornerPosition(r, r, r, normAngle);
+    }
+  }
+
+  return { x, y };
+}
+
+// Get position on a corner arc given the corner center, radius, and angle
+function getCornerPosition(cornerX, cornerY, radius, angleDeg) {
+  const angleRad = (angleDeg * Math.PI) / 180;
+  // Our coordinate system: angle 0 = up (negative Y), angles increase clockwise
+  // x = cx + r*sin(angle), y = cy - r*cos(angle)
+  return {
+    x: cornerX + radius * Math.sin(angleRad),
+    y: cornerY - radius * Math.cos(angleRad),
+  };
+}
+
 function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) {
   if (effect === 'none' || !PARTICLE_EFFECTS.includes(effect)) {
     return [];
@@ -993,6 +1114,101 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   );
 }
 
+// Particle system that follows the pulse head using JS animation
+// Uses absolute time (performance.now()) to stay in sync with CSS animations
+function BorderParticles({ particles, active, duration, shape, width, height, borderRadius }) {
+  const containerRef = useRef(null);
+  const animationRef = useRef(null);
+  // Store the time offset when animation was paused, to resume correctly
+  const pauseOffsetRef = useRef(0);
+  const pausedAtRef = useRef(null);
+
+  const updateParticlePositions = useCallback((timestamp) => {
+    if (!containerRef.current) return;
+
+    // Use absolute time (timestamp from performance.now()) with pause offset adjustment
+    // This keeps JS animation in sync with CSS animations that also use performance.now()
+    const adjustedTime = timestamp - pauseOffsetRef.current;
+    const elapsed = adjustedTime / 1000; // Convert to seconds
+    const progress = (elapsed % duration) / duration; // 0 to 1 progress through animation cycle
+    const headAngle = progress * 360; // Current angle of pulse head
+
+    const particleElements = containerRef.current.children;
+    for (let i = 0; i < particles.length && i < particleElements.length; i++) {
+      const particle = particles[i];
+      // Particle angle trails behind head by trailOffset (negative value)
+      const particleAngle = headAngle + particle.trailOffset * 360;
+      const pos = getPositionFromAngle(particleAngle, shape, width, height, borderRadius);
+
+      // Center the particle on its position
+      const particleEl = particleElements[i];
+      particleEl.style.left = `${pos.x}px`;
+      particleEl.style.top = `${pos.y}px`;
+    }
+
+    animationRef.current = requestAnimationFrame(updateParticlePositions);
+  }, [duration, shape, width, height, borderRadius, particles]);
+
+  useEffect(() => {
+    if (active) {
+      // Resume animation - adjust offset to account for paused time
+      if (pausedAtRef.current !== null) {
+        pauseOffsetRef.current += performance.now() - pausedAtRef.current;
+        pausedAtRef.current = null;
+      }
+      animationRef.current = requestAnimationFrame(updateParticlePositions);
+    } else {
+      // Pause - record when we paused
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      pausedAtRef.current = performance.now();
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [active, updateParticlePositions]);
+
+  if (particles.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        overflow: 'visible',
+        pointerEvents: 'none',
+      }}
+    >
+      {particles.map((particle) => (
+        <div
+          key={particle.id}
+          style={{
+            position: 'absolute',
+            transform: 'translate(-50%, -50%)', // Center on position
+          }}
+        >
+          <div
+            style={{
+              ...particle.style,
+              animation: particle.burstAnimation || 'none',
+              animationDelay: particle.burstDelay || '0s',
+              animationPlayState: active ? 'running' : 'paused',
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
 
@@ -1013,7 +1229,6 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
   // Get dimensions for path calculation
   const width = parseFloat(shapeStyles.wrapper.width) || 300;
   const height = parseFloat(shapeStyles.wrapper.height) || 180;
-  const borderPath = getBorderPath(shape, width, height, borderRadius);
 
   // Get the styled path for SVG-based line styles
   const styledBorderPath = useMemo(() => {
@@ -1041,14 +1256,6 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
     borderRadius,
   };
 
-  const particleContainerStyles = {
-    position: 'absolute',
-    inset: 0,
-    borderRadius,
-    overflow: 'visible', // Allow particles to burst outward
-    pointerEvents: 'none',
-  };
-
   return (
     <>
       <style>{keyframesStyle}</style>
@@ -1067,40 +1274,16 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
         ) : (
           <div style={borderStyles} />
         )}
-        {active && particleEffect !== 'none' && (
-          <div style={particleContainerStyles}>
-            {particles.map((particle) => {
-              // Calculate the offset-distance delay to trail behind pulse head
-              // Pulse head is at offset-distance: 100% at end of animation
-              // We use negative animation-delay to make particles start behind the head
-              const trailDelay = particle.trailOffset * duration;
-
-              const pathFollowStyle = {
-                position: 'absolute',
-                offsetPath: `path('${borderPath}')`,
-                offsetRotate: '0deg',
-                animation: `followBorder ${duration}s linear infinite`,
-                animationDelay: `${trailDelay}s`,
-                animationPlayState: active ? 'running' : 'paused',
-              };
-
-              return (
-                <div
-                  key={particle.id}
-                  style={pathFollowStyle}
-                >
-                  <div
-                    style={{
-                      ...particle.style,
-                      animation: particle.burstAnimation || 'none',
-                      animationDelay: particle.burstDelay || '0s',
-                      animationPlayState: active ? 'running' : 'paused',
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
+        {particleEffect !== 'none' && (
+          <BorderParticles
+            particles={particles}
+            active={active}
+            duration={duration}
+            shape={shape}
+            width={width}
+            height={height}
+            borderRadius={borderRadius}
+          />
         )}
         <div style={contentStyles}>
           {children}
