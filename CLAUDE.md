@@ -109,6 +109,10 @@ fd -e ext                       # All files with extension
 * `ls -R` - use `rg --files` or `fd`
 * `cat file | grep` - use `rg pattern file`
 
+### Dangerous Commands - Use Alternatives
+
+* `pkill -f "next"` - **NEVER USE** - This kills the Ralph loop because the claude process command line contains "next" in the prompt text. Use `./ortus/kill-nextjs.sh` instead, which safely kills only Next.js server processes by targeting port 3000 or the specific `next-server` process pattern.
+
 ### Search Strategy
 
 1. Start broad, then narrow: `rg "partial" | rg "specific"`
