@@ -24,7 +24,7 @@ const wrapperStyles = {
   borderRadius: '12px',
 };
 
-const borderStyles = {
+const baseBorderStyles = {
   position: 'absolute',
   inset: 0,
   borderRadius: '12px',
@@ -40,7 +40,6 @@ const borderStyles = {
   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
   WebkitMaskComposite: 'xor',
   maskComposite: 'exclude',
-  animation: 'borderTrace 3s linear infinite',
   pointerEvents: 'none',
 };
 
@@ -54,7 +53,12 @@ const contentStyles = {
   justifyContent: 'center',
 };
 
-function ActivityCard({ children, active, color }) {
+function ActivityCard({ children, active = true, color }) {
+  const borderStyles = {
+    ...baseBorderStyles,
+    animation: active ? 'borderTrace 3s linear infinite' : 'none',
+  };
+
   return (
     <>
       <style>{keyframesStyle}</style>
