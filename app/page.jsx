@@ -172,6 +172,25 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Shape Variations */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Shape Variations</div>
+        <div style={gridStyle}>
+          <ActivityCard shape="rectangle">
+            <span style={{ color: 'var(--text-color)' }}>Rectangle (default)</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" color="#8b5cf6">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Circle</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" color="#22c55e" particleEffect="sparkler">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Circle + Particles</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" color="#f59e0b" speed="fast">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Circle Fast</span>
+          </ActivityCard>
+        </div>
+      </section>
+
       {/* Inactive State */}
       <section style={sectionStyle}>
         <div style={labelStyle}>Inactive State (active=false)</div>

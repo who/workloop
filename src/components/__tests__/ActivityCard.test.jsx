@@ -32,4 +32,14 @@ describe('ActivityCard', () => {
     render(<ActivityCard particleEffect="none">No Particles</ActivityCard>);
     expect(screen.getByText('No Particles')).toBeDefined();
   });
+
+  it('renders with shape="rectangle" (default)', () => {
+    render(<ActivityCard shape="rectangle">Rectangle Card</ActivityCard>);
+    expect(screen.getByText('Rectangle Card')).toBeDefined();
+  });
+
+  it('renders with shape="circle"', () => {
+    render(<ActivityCard shape="circle">Circle Card</ActivityCard>);
+    expect(screen.getByText('Circle Card')).toBeDefined();
+  });
 });

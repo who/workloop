@@ -141,17 +141,31 @@ const keyframesStyle = `
 }
 `;
 
-const wrapperStyles = {
-  position: 'relative',
-  width: '300px',
-  height: '180px',
-  borderRadius: '12px',
+const SHAPE_STYLES = {
+  rectangle: {
+    wrapper: {
+      position: 'relative',
+      width: '300px',
+      height: '180px',
+      borderRadius: '12px',
+    },
+    borderRadius: '12px',
+  },
+  circle: {
+    wrapper: {
+      position: 'relative',
+      width: '180px',
+      height: '180px',
+      borderRadius: '50%',
+      aspectRatio: '1',
+    },
+    borderRadius: '50%',
+  },
 };
 
 const baseBorderStyles = {
   position: 'absolute',
   inset: 0,
-  borderRadius: '12px',
   padding: '2px',
   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
   WebkitMaskComposite: 'xor',
@@ -211,10 +225,9 @@ function createBorderGradient(rgb) {
   )`;
 }
 
-const contentStyles = {
+const baseContentStyles = {
   width: '100%',
   height: '100%',
-  borderRadius: '12px',
   backgroundColor: 'rgba(128, 128, 128, 0.1)',
   border: '1px solid rgba(128, 128, 128, 0.2)',
   display: 'flex',
@@ -464,7 +477,7 @@ function generateParticles(effect, rgb, effectIntensity) {
   return particles;
 }
 
-function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none' }) {
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
 
   useEffect(() => {
@@ -482,18 +495,27 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
     return generateParticles(particleEffect, rgb, effectIntensity);
   }, [particleEffect, rgb, effectIntensity]);
 
+  const shapeStyles = SHAPE_STYLES[shape] || SHAPE_STYLES.rectangle;
+  const { borderRadius } = shapeStyles;
+
   const borderStyles = {
     ...baseBorderStyles,
+    borderRadius,
     background: createBorderGradient(rgb),
     animation: `borderTrace ${duration}s linear infinite`,
     animationPlayState: active ? 'running' : 'paused',
     filter: `drop-shadow(0 0 ${glowBlur}px ${glowColor}) drop-shadow(0 0 ${glowBlur2}px ${glowColor})`,
   };
 
+  const contentStyles = {
+    ...baseContentStyles,
+    borderRadius,
+  };
+
   const particleContainerStyles = {
     position: 'absolute',
     inset: 0,
-    borderRadius: '12px',
+    borderRadius,
     overflow: 'hidden',
     pointerEvents: 'none',
   };
@@ -501,7 +523,7 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
   return (
     <>
       <style>{keyframesStyle}</style>
-      <div style={wrapperStyles}>
+      <div style={shapeStyles.wrapper}>
         <div style={borderStyles} />
         {active && particleEffect !== 'none' && (
           <div style={particleContainerStyles}>
