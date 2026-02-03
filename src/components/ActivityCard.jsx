@@ -113,7 +113,8 @@ function ActivityCard({ children, active = true, color = '#3b82f6' }) {
   const borderStyles = {
     ...baseBorderStyles,
     background: createBorderGradient(rgb),
-    animation: active ? 'borderTrace 3s linear infinite' : 'none',
+    animation: 'borderTrace 3s linear infinite',
+    animationPlayState: active ? 'running' : 'paused',
     filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
   };
 
