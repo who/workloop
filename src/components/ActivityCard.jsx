@@ -29,19 +29,54 @@ const baseBorderStyles = {
   inset: 0,
   borderRadius: '12px',
   padding: '2px',
-  background: `conic-gradient(
-    from var(--border-angle, 0deg),
-    transparent 0deg,
-    transparent 270deg,
-    rgba(100, 180, 255, 0.1) 280deg,
-    rgba(100, 180, 255, 0.5) 320deg,
-    rgba(100, 180, 255, 1) 360deg
-  )`,
   WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
   WebkitMaskComposite: 'xor',
   maskComposite: 'exclude',
   pointerEvents: 'none',
 };
+
+function parseColor(color) {
+  const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+  if (!canvas) {
+    // SSR fallback: parse hex colors directly
+    if (color.startsWith('#')) {
+      const hex = color.slice(1);
+      const fullHex = hex.length === 3
+        ? hex.split('').map(c => c + c).join('')
+        : hex;
+      const num = parseInt(fullHex, 16);
+      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+    }
+    // Default fallback
+    return [59, 130, 246];
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = color;
+  const computed = ctx.fillStyle;
+  if (computed.startsWith('#')) {
+    const hex = computed.slice(1);
+    const num = parseInt(hex, 16);
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+  }
+  // Handle rgb/rgba format
+  const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  if (match) {
+    return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
+  }
+  return [59, 130, 246]; // Default blue
+}
+
+function createBorderGradient(color) {
+  const [r, g, b] = parseColor(color);
+  return `conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0deg,
+    transparent 270deg,
+    rgba(${r}, ${g}, ${b}, 0.1) 280deg,
+    rgba(${r}, ${g}, ${b}, 0.5) 320deg,
+    rgba(${r}, ${g}, ${b}, 1) 360deg
+  )`;
+}
 
 const contentStyles = {
   width: '100%',
@@ -53,9 +88,10 @@ const contentStyles = {
   justifyContent: 'center',
 };
 
-function ActivityCard({ children, active = true, color }) {
+function ActivityCard({ children, active = true, color = '#3b82f6' }) {
   const borderStyles = {
     ...baseBorderStyles,
+    background: createBorderGradient(color),
     animation: active ? 'borderTrace 3s linear infinite' : 'none',
   };
 
