@@ -89,10 +89,14 @@ const contentStyles = {
 };
 
 function ActivityCard({ children, active = true, color = '#3b82f6' }) {
+  const [r, g, b] = parseColor(color);
+  const glowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
+
   const borderStyles = {
     ...baseBorderStyles,
     background: createBorderGradient(color),
     animation: active ? 'borderTrace 3s linear infinite' : 'none',
+    filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
   };
 
   return (
