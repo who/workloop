@@ -377,6 +377,64 @@ export default function Home() {
           </ActivityCard>
         </div>
       </section>
+
+      {/* Combined Particle + Line Style Examples */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Combined Particle + Line Style Examples</div>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          Particle effects can be combined with different line styles for unique visual combinations.
+        </p>
+        <div style={gridStyle}>
+          <ActivityCard color="#f59e0b" particleEffect="sparkler" lineStyle="dashed">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Sparkler + Dashed</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Festive sparkles with dashed trail
+              </div>
+            </div>
+          </ActivityCard>
+          <ActivityCard color="#3b82f6" particleEffect="comet" lineStyle="dotted">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Comet + Dotted</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Cosmic comet with dotted path
+              </div>
+            </div>
+          </ActivityCard>
+          <ActivityCard color="#06b6d4" particleEffect="electric" lineStyle="wavy">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Electric + Wavy</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Electric sparks on wavy current
+              </div>
+            </div>
+          </ActivityCard>
+          <ActivityCard color="#ef4444" particleEffect="ember" lineStyle="scribble">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Ember + Scribble</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Glowing embers on sketched border
+              </div>
+            </div>
+          </ActivityCard>
+          <ActivityCard color="#8b5cf6" particleEffect="stardust" lineStyle="tapered">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Stardust + Tapered</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Magical stardust with tapered stroke
+              </div>
+            </div>
+          </ActivityCard>
+          <ActivityCard color="#22c55e" particleEffect="bubble" lineStyle="double">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Bubble + Double</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                Floating bubbles with double line
+              </div>
+            </div>
+          </ActivityCard>
+        </div>
+      </section>
     </main>
   )
 }
