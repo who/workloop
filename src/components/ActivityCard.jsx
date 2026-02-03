@@ -36,21 +36,19 @@ const baseBorderStyles = {
 };
 
 function parseColor(color) {
-  const canvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
-  if (!canvas) {
-    // SSR fallback: parse hex colors directly
-    if (color.startsWith('#')) {
-      const hex = color.slice(1);
-      const fullHex = hex.length === 3
-        ? hex.split('').map(c => c + c).join('')
-        : hex;
-      const num = parseInt(fullHex, 16);
-      return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
-    }
-    // Default fallback
-    return [59, 130, 246];
+  // SSR/test fallback: parse hex colors directly without canvas
+  if (typeof document === 'undefined') {
+    return parseHexColor(color);
   }
+
+  const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
+
+  // Canvas not supported (jsdom, some browsers)
+  if (!ctx) {
+    return parseHexColor(color);
+  }
+
   ctx.fillStyle = color;
   const computed = ctx.fillStyle;
   if (computed.startsWith('#')) {
@@ -64,6 +62,19 @@ function parseColor(color) {
     return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
   }
   return [59, 130, 246]; // Default blue
+}
+
+function parseHexColor(color) {
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const fullHex = hex.length === 3
+      ? hex.split('').map(c => c + c).join('')
+      : hex;
+    const num = parseInt(fullHex, 16);
+    return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+  }
+  // Default fallback
+  return [59, 130, 246];
 }
 
 function createBorderGradient(color) {
