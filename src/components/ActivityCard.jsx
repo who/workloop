@@ -100,7 +100,20 @@ const contentStyles = {
   justifyContent: 'center',
 };
 
-function ActivityCard({ children, active = true, color = '#3b82f6' }) {
+const SPEED_PRESETS = {
+  slow: 5,
+  normal: 3,
+  fast: 1.5,
+};
+
+function getAnimationDuration(speed) {
+  if (typeof speed === 'number') {
+    return speed;
+  }
+  return SPEED_PRESETS[speed] ?? SPEED_PRESETS.normal;
+}
+
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
 
   useEffect(() => {
@@ -110,10 +123,12 @@ function ActivityCard({ children, active = true, color = '#3b82f6' }) {
   const [r, g, b] = rgb;
   const glowColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
 
+  const duration = getAnimationDuration(speed);
+
   const borderStyles = {
     ...baseBorderStyles,
     background: createBorderGradient(rgb),
-    animation: 'borderTrace 3s linear infinite',
+    animation: `borderTrace ${duration}s linear infinite`,
     animationPlayState: active ? 'running' : 'paused',
     filter: `drop-shadow(0 0 4px ${glowColor}) drop-shadow(0 0 8px ${glowColor})`,
   };

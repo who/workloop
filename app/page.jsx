@@ -45,6 +45,7 @@ const themeToggleStyle = {
 
 export default function Home() {
   const [isActive, setIsActive] = useState(true)
+  const [customSpeed, setCustomSpeed] = useState(3)
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -100,6 +101,41 @@ export default function Home() {
             >
               Toggle Active
             </button>
+          </div>
+        </ActivityCard>
+      </section>
+
+      {/* Speed Variations */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Speed Presets</div>
+        <div style={gridStyle}>
+          <ActivityCard speed="slow">
+            <span style={{ color: 'var(--text-color)' }}>Slow (5s)</span>
+          </ActivityCard>
+          <ActivityCard speed="normal">
+            <span style={{ color: 'var(--text-color)' }}>Normal (3s)</span>
+          </ActivityCard>
+          <ActivityCard speed="fast">
+            <span style={{ color: 'var(--text-color)' }}>Fast (1.5s)</span>
+          </ActivityCard>
+        </div>
+      </section>
+
+      {/* Interactive Speed Control */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Interactive Speed Control</div>
+        <ActivityCard speed={customSpeed} color="#8b5cf6">
+          <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+            <div>Speed: {customSpeed}s</div>
+            <input
+              type="range"
+              min="0.5"
+              max="8"
+              step="0.5"
+              value={customSpeed}
+              onChange={(e) => setCustomSpeed(parseFloat(e.target.value))}
+              style={{ width: '200px', marginTop: '0.5rem' }}
+            />
           </div>
         </ActivityCard>
       </section>
