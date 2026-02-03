@@ -271,7 +271,6 @@ const baseContentStyles = {
   width: '100%',
   height: '100%',
   backgroundColor: 'rgba(128, 128, 128, 0.1)',
-  border: '1px solid rgba(128, 128, 128, 0.2)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -318,20 +317,22 @@ function getIntensityFromSpeed(duration) {
 }
 
 // Get intensity parameters for effects
-function getEffectIntensity(duration) {
+function getEffectIntensity(duration, hovered = false) {
   const intensity = getIntensityFromSpeed(duration);
+  // Hover multiplier for accentuated effects
+  const hoverMult = hovered ? 1.4 : 1;
 
   return {
-    intensity,
+    intensity: intensity * hoverMult,
     // Glow parameters
-    glowBlur: Math.round(4 * intensity),
-    glowBlur2: Math.round(8 * intensity),
-    glowOpacity: Math.min(0.9, 0.6 * intensity),
+    glowBlur: Math.round(4 * intensity * hoverMult),
+    glowBlur2: Math.round(8 * intensity * hoverMult),
+    glowOpacity: Math.min(0.95, 0.6 * intensity * hoverMult),
     // Particle parameters
     particleCount: Math.round(12 * intensity),
-    particleSizeMultiplier: 0.7 + intensity * 0.3,
-    particleOpacityMultiplier: 0.7 + intensity * 0.3,
-    particleBlurMultiplier: intensity,
+    particleSizeMultiplier: (0.7 + intensity * 0.3) * hoverMult,
+    particleOpacityMultiplier: Math.min(1, (0.7 + intensity * 0.3) * hoverMult),
+    particleBlurMultiplier: intensity * hoverMult,
   };
 }
 
@@ -1211,6 +1212,7 @@ function BorderParticles({ particles, active, duration, shape, width, height, bo
 
 function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     setRgb(parseColor(color));
@@ -1218,7 +1220,7 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
 
   const [r, g, b] = rgb;
   const duration = getAnimationDuration(speed);
-  const effectIntensity = getEffectIntensity(duration);
+  const effectIntensity = getEffectIntensity(duration, hovered);
 
   const { glowBlur, glowBlur2, glowOpacity } = effectIntensity;
   const glowColor = `rgba(${r}, ${g}, ${b}, ${glowOpacity})`;
@@ -1237,7 +1239,8 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
 
   const particles = useMemo(() => {
     return generateBorderParticles(particleEffect, rgb, effectIntensity, duration, shape);
-  }, [particleEffect, rgb, effectIntensity, duration, shape]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [particleEffect, rgb, duration, shape, hovered]);
 
   // Use SVG border for non-solid line styles
   const useSvgBorder = lineStyle !== 'solid';
@@ -1249,17 +1252,35 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
     animation: `borderTrace ${duration}s linear infinite`,
     animationPlayState: active ? 'running' : 'paused',
     filter: `drop-shadow(0 0 ${glowBlur}px ${glowColor}) drop-shadow(0 0 ${glowBlur2}px ${glowColor})`,
+    transition: 'filter 0.2s ease-out',
   };
+
+  // Static border that gains contrast on hover
+  const staticBorderOpacity = hovered ? 0.4 : 0.2;
 
   const contentStyles = {
     ...baseContentStyles,
     borderRadius,
+    border: `1px solid rgba(${r}, ${g}, ${b}, ${staticBorderOpacity})`,
+    transition: 'border-color 0.2s ease-out',
+  };
+
+  // Wrapper styles with hover scale effect
+  const wrapperStyles = {
+    ...shapeStyles.wrapper,
+    transform: hovered ? 'scale(1.02)' : 'scale(1)',
+    transition: 'transform 0.2s ease-out',
+    cursor: 'pointer',
   };
 
   return (
     <>
       <style>{keyframesStyle}</style>
-      <div style={shapeStyles.wrapper}>
+      <div
+        style={wrapperStyles}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         {useSvgBorder ? (
           <SvgBorder
             path={styledBorderPath}
