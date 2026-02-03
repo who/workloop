@@ -776,7 +776,7 @@ function getCornerPosition(cornerX, cornerY, radius, angleDeg) {
   };
 }
 
-function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) {
+function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, particleFollowDistance = 1) {
   if (effect === 'none' || !PARTICLE_EFFECTS.includes(effect)) {
     return [];
   }
@@ -791,6 +791,9 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) 
     particleBlurMultiplier: blurMult,
   } = effectIntensity;
 
+  // Base trail distance (15% of path), scaled by particleFollowDistance prop
+  const baseTrailDistance = 0.15 * particleFollowDistance;
+
   // Particles follow the pulse head with slight offsets
   for (let i = 0; i < particleCount; i++) {
     const seed = i * 137.5;
@@ -801,7 +804,7 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) 
 
     // Each particle trails behind the pulse head by a different amount
     // Negative offset means trailing behind
-    const trailOffset = -(i / particleCount) * 0.15; // Trail within 15% of the path behind head
+    const trailOffset = -(i / particleCount) * baseTrailDistance;
 
     let particle = {
       id: i,
@@ -842,8 +845,8 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) 
           background: `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult}), rgba(${r}, ${g}, ${b}, 0))`,
           transformOrigin: 'right center',
         };
-        // Comet trails just follow along the path
-        particle.trailOffset = -(i / particleCount) * 0.25; // Longer trail for comet
+        // Comet trails just follow along the path (uses 1.67x base trail for longer effect)
+        particle.trailOffset = -(i / particleCount) * baseTrailDistance * 1.67;
         break;
       }
       case 'stardust': {
@@ -1238,7 +1241,7 @@ function BorderParticles({ particles, active, duration, shape, width, height, bo
   );
 }
 
-function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid' }) {
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid', particleFollowDistance = 1 }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
   const [hovered, setHovered] = useState(false);
 
@@ -1266,9 +1269,9 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
   }, [lineStyle, shape, width, height, borderRadius]);
 
   const particles = useMemo(() => {
-    return generateBorderParticles(particleEffect, rgb, effectIntensity, duration, shape);
+    return generateBorderParticles(particleEffect, rgb, effectIntensity, duration, shape, particleFollowDistance);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [particleEffect, rgb, duration, shape, hovered]);
+  }, [particleEffect, rgb, duration, shape, hovered, particleFollowDistance]);
 
   // Use SVG border for non-solid line styles
   const useSvgBorder = lineStyle !== 'solid';
