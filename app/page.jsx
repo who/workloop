@@ -46,10 +46,14 @@ const themeToggleStyle = {
 const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 'bubble']
 const PARTICLE_COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', '#22c55e']
 
+const LINE_STYLES = ['solid', 'dotted', 'dashed', 'scribble', 'double', 'wavy', 'glow', 'tapered']
+const LINE_STYLE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6']
+
 export default function Home() {
   const [isActive, setIsActive] = useState(true)
   const [customSpeed, setCustomSpeed] = useState(3)
   const [selectedEffect, setSelectedEffect] = useState('sparkler')
+  const [selectedLineStyle, setSelectedLineStyle] = useState('solid')
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -189,6 +193,74 @@ export default function Home() {
             <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Circle Fast</span>
           </ActivityCard>
         </div>
+      </section>
+
+      {/* Line Style Variations */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Line Style Variations</div>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          Different stroke styles for the border pulse effect. Use lineStyle prop to customize.
+        </p>
+        <div style={gridStyle}>
+          {LINE_STYLES.map((style, index) => (
+            <ActivityCard key={style} color={LINE_STYLE_COLORS[index]} lineStyle={style}>
+              <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{style}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  lineStyle=&quot;{style}&quot;
+                </div>
+              </div>
+            </ActivityCard>
+          ))}
+        </div>
+      </section>
+
+      {/* Line Styles with Circle Shape */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Line Styles on Circle</div>
+        <div style={gridStyle}>
+          <ActivityCard shape="circle" lineStyle="dotted" color="#22c55e">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Dotted Circle</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" lineStyle="wavy" color="#8b5cf6">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Wavy Circle</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" lineStyle="glow" color="#ec4899">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Glow Circle</span>
+          </ActivityCard>
+          <ActivityCard shape="circle" lineStyle="scribble" color="#f59e0b">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Scribble Circle</span>
+          </ActivityCard>
+        </div>
+      </section>
+
+      {/* Interactive Line Style Selector */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Interactive Line Style Selector</div>
+        <ActivityCard color="#06b6d4" lineStyle={selectedLineStyle} particleEffect={selectedEffect}>
+          <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              Line: <strong style={{ textTransform: 'capitalize' }}>{selectedLineStyle}</strong>
+            </div>
+            <select
+              value={selectedLineStyle}
+              onChange={(e) => setSelectedLineStyle(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                fontSize: '1rem',
+                borderRadius: '6px',
+                border: '1px solid var(--text-muted)',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)',
+                cursor: 'pointer',
+              }}
+            >
+              {LINE_STYLES.map((style) => (
+                <option key={style} value={style}>{style.charAt(0).toUpperCase() + style.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </ActivityCard>
       </section>
 
       {/* Inactive State */}

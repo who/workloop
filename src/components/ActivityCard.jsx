@@ -148,6 +148,24 @@ const keyframesStyle = `
     transform: translateX(2px);
   }
 }
+
+@keyframes strokeTrace {
+  from {
+    stroke-dashoffset: var(--path-length);
+  }
+  to {
+    stroke-dashoffset: calc(var(--path-length) * -1);
+  }
+}
+
+@keyframes glowPulse {
+  0%, 100% {
+    filter: blur(2px) brightness(1);
+  }
+  50% {
+    filter: blur(4px) brightness(1.3);
+  }
+}
 `;
 
 const SHAPE_STYLES = {
@@ -304,6 +322,57 @@ function getEffectIntensity(duration) {
 
 const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 'bubble', 'none'];
 
+const LINE_STYLES = ['solid', 'dotted', 'dashed', 'scribble', 'double', 'wavy', 'glow', 'tapered'];
+
+// Get SVG stroke properties for different line styles
+function getStrokeStyle(lineStyle, baseStrokeWidth = 2) {
+  switch (lineStyle) {
+    case 'dotted':
+      return {
+        strokeDasharray: `${baseStrokeWidth}, ${baseStrokeWidth * 3}`,
+        strokeLinecap: 'round',
+        strokeWidth: baseStrokeWidth,
+      };
+    case 'dashed':
+      return {
+        strokeDasharray: `${baseStrokeWidth * 4}, ${baseStrokeWidth * 2}`,
+        strokeLinecap: 'butt',
+        strokeWidth: baseStrokeWidth,
+      };
+    case 'double':
+      // Double lines are rendered as two separate paths
+      return {
+        strokeDasharray: 'none',
+        strokeLinecap: 'round',
+        strokeWidth: baseStrokeWidth * 0.6,
+        isDouble: true,
+        spacing: baseStrokeWidth * 1.5,
+      };
+    case 'glow':
+      return {
+        strokeDasharray: 'none',
+        strokeLinecap: 'round',
+        strokeWidth: baseStrokeWidth * 2,
+        isGlow: true,
+      };
+    case 'tapered':
+      // Tapered uses stroke-dasharray to simulate varying thickness
+      return {
+        strokeDasharray: 'none',
+        strokeLinecap: 'round',
+        strokeWidth: baseStrokeWidth,
+        isTapered: true,
+      };
+    case 'solid':
+    default:
+      return {
+        strokeDasharray: 'none',
+        strokeLinecap: 'round',
+        strokeWidth: baseStrokeWidth,
+      };
+  }
+}
+
 function seededRandom(seed) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
@@ -333,6 +402,256 @@ function getBorderPath(shape, width, height, borderRadius) {
           L 0 ${r}
           Q 0 0 ${r} 0
           L ${midX} 0`;
+}
+
+// Generate a wavy version of a path by adding sinusoidal offsets
+function getWavyPath(shape, width, height, borderRadius, amplitude = 3, frequency = 20) {
+  if (shape === 'circle') {
+    const cx = width / 2;
+    const cy = height / 2;
+    const r = Math.min(width, height) / 2;
+    const circumference = 2 * Math.PI * r;
+    const segments = Math.max(60, Math.floor(circumference / 4));
+
+    let path = '';
+    for (let i = 0; i <= segments; i++) {
+      // Start from top center (-90 degrees / -PI/2)
+      const angle = -Math.PI / 2 + (i / segments) * 2 * Math.PI;
+      const wave = Math.sin((i / segments) * frequency * Math.PI) * amplitude;
+      const currentR = r + wave;
+      const x = cx + Math.cos(angle) * currentR;
+      const y = cy + Math.sin(angle) * currentR;
+
+      if (i === 0) {
+        path = `M ${x} ${y}`;
+      } else {
+        path += ` L ${x} ${y}`;
+      }
+    }
+    return path;
+  }
+
+  // For rectangle, trace the perimeter with wavy deformations
+  const r = Math.min(parseFloat(borderRadius) || 12, Math.min(width, height) / 2);
+  const perimeter = 2 * (width + height - 4 * r) + 2 * Math.PI * r;
+  const segments = Math.max(80, Math.floor(perimeter / 3));
+
+  // Calculate total distances for each segment of the rectangle
+  const topLength = width - 2 * r;
+  const rightLength = height - 2 * r;
+  const bottomLength = width - 2 * r;
+  const leftLength = height - 2 * r;
+  const cornerArc = Math.PI * r / 2;
+
+  const points = [];
+  const midX = width / 2;
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const waveOffset = Math.sin(t * frequency * Math.PI) * amplitude;
+
+    // Determine position along perimeter starting from top center
+    let totalDist = t * perimeter;
+    let x, y, nx, ny; // position and normal vector
+
+    // Start from top center, go right
+    const halfTop = topLength / 2;
+
+    if (totalDist < halfTop) {
+      // Top edge (right half, from center to corner)
+      x = midX + totalDist;
+      y = 0;
+      nx = 0; ny = -1;
+    } else if (totalDist < halfTop + cornerArc) {
+      // Top-right corner
+      const arcDist = totalDist - halfTop;
+      const angle = -Math.PI / 2 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = width - r + Math.cos(angle) * r;
+      y = r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + cornerArc + rightLength) {
+      // Right edge
+      const edgeDist = totalDist - halfTop - cornerArc;
+      x = width;
+      y = r + edgeDist;
+      nx = 1; ny = 0;
+    } else if (totalDist < halfTop + 2 * cornerArc + rightLength) {
+      // Bottom-right corner
+      const arcDist = totalDist - halfTop - cornerArc - rightLength;
+      const angle = 0 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = width - r + Math.cos(angle) * r;
+      y = height - r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + 2 * cornerArc + rightLength + bottomLength) {
+      // Bottom edge
+      const edgeDist = totalDist - halfTop - 2 * cornerArc - rightLength;
+      x = width - r - edgeDist;
+      y = height;
+      nx = 0; ny = 1;
+    } else if (totalDist < halfTop + 3 * cornerArc + rightLength + bottomLength) {
+      // Bottom-left corner
+      const arcDist = totalDist - halfTop - 2 * cornerArc - rightLength - bottomLength;
+      const angle = Math.PI / 2 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = r + Math.cos(angle) * r;
+      y = height - r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + 3 * cornerArc + rightLength + bottomLength + leftLength) {
+      // Left edge
+      const edgeDist = totalDist - halfTop - 3 * cornerArc - rightLength - bottomLength;
+      x = 0;
+      y = height - r - edgeDist;
+      nx = -1; ny = 0;
+    } else if (totalDist < halfTop + 4 * cornerArc + rightLength + bottomLength + leftLength) {
+      // Top-left corner
+      const arcDist = totalDist - halfTop - 3 * cornerArc - rightLength - bottomLength - leftLength;
+      const angle = Math.PI + (arcDist / cornerArc) * (Math.PI / 2);
+      x = r + Math.cos(angle) * r;
+      y = r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else {
+      // Top edge (left half, from corner back to center)
+      const edgeDist = totalDist - halfTop - 4 * cornerArc - rightLength - bottomLength - leftLength;
+      x = r + edgeDist;
+      y = 0;
+      nx = 0; ny = -1;
+    }
+
+    // Apply wave offset along normal
+    points.push({
+      x: x + nx * waveOffset,
+      y: y + ny * waveOffset,
+    });
+  }
+
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    path += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return path;
+}
+
+// Generate a scribble/hand-drawn path with random wobble
+function getScribblePath(shape, width, height, borderRadius, seed = 42) {
+  const amplitude = 2;
+  const segments = shape === 'circle' ? 80 : 100;
+
+  if (shape === 'circle') {
+    const cx = width / 2;
+    const cy = height / 2;
+    const r = Math.min(width, height) / 2;
+
+    let path = '';
+    for (let i = 0; i <= segments; i++) {
+      const angle = -Math.PI / 2 + (i / segments) * 2 * Math.PI;
+      // Use seeded random for consistent wobble
+      const wobble = (seededRandom(seed + i * 7) - 0.5) * amplitude * 2;
+      const currentR = r + wobble;
+      const x = cx + Math.cos(angle) * currentR;
+      const y = cy + Math.sin(angle) * currentR;
+
+      if (i === 0) {
+        path = `M ${x} ${y}`;
+      } else {
+        path += ` L ${x} ${y}`;
+      }
+    }
+    return path;
+  }
+
+  // For rectangle, similar to wavy but with random offsets
+  const r = Math.min(parseFloat(borderRadius) || 12, Math.min(width, height) / 2);
+  const perimeter = 2 * (width + height - 4 * r) + 2 * Math.PI * r;
+
+  const topLength = width - 2 * r;
+  const rightLength = height - 2 * r;
+  const bottomLength = width - 2 * r;
+  const leftLength = height - 2 * r;
+  const cornerArc = Math.PI * r / 2;
+
+  const points = [];
+  const midX = width / 2;
+  const halfTop = topLength / 2;
+
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const wobble = (seededRandom(seed + i * 13) - 0.5) * amplitude * 2;
+
+    let totalDist = t * perimeter;
+    let x, y, nx, ny;
+
+    if (totalDist < halfTop) {
+      x = midX + totalDist;
+      y = 0;
+      nx = 0; ny = -1;
+    } else if (totalDist < halfTop + cornerArc) {
+      const arcDist = totalDist - halfTop;
+      const angle = -Math.PI / 2 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = width - r + Math.cos(angle) * r;
+      y = r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + cornerArc + rightLength) {
+      const edgeDist = totalDist - halfTop - cornerArc;
+      x = width;
+      y = r + edgeDist;
+      nx = 1; ny = 0;
+    } else if (totalDist < halfTop + 2 * cornerArc + rightLength) {
+      const arcDist = totalDist - halfTop - cornerArc - rightLength;
+      const angle = 0 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = width - r + Math.cos(angle) * r;
+      y = height - r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + 2 * cornerArc + rightLength + bottomLength) {
+      const edgeDist = totalDist - halfTop - 2 * cornerArc - rightLength;
+      x = width - r - edgeDist;
+      y = height;
+      nx = 0; ny = 1;
+    } else if (totalDist < halfTop + 3 * cornerArc + rightLength + bottomLength) {
+      const arcDist = totalDist - halfTop - 2 * cornerArc - rightLength - bottomLength;
+      const angle = Math.PI / 2 + (arcDist / cornerArc) * (Math.PI / 2);
+      x = r + Math.cos(angle) * r;
+      y = height - r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else if (totalDist < halfTop + 3 * cornerArc + rightLength + bottomLength + leftLength) {
+      const edgeDist = totalDist - halfTop - 3 * cornerArc - rightLength - bottomLength;
+      x = 0;
+      y = height - r - edgeDist;
+      nx = -1; ny = 0;
+    } else if (totalDist < halfTop + 4 * cornerArc + rightLength + bottomLength + leftLength) {
+      const arcDist = totalDist - halfTop - 3 * cornerArc - rightLength - bottomLength - leftLength;
+      const angle = Math.PI + (arcDist / cornerArc) * (Math.PI / 2);
+      x = r + Math.cos(angle) * r;
+      y = r + Math.sin(angle) * r;
+      nx = Math.cos(angle); ny = Math.sin(angle);
+    } else {
+      const edgeDist = totalDist - halfTop - 4 * cornerArc - rightLength - bottomLength - leftLength;
+      x = r + edgeDist;
+      y = 0;
+      nx = 0; ny = -1;
+    }
+
+    points.push({
+      x: x + nx * wobble,
+      y: y + ny * wobble,
+    });
+  }
+
+  let path = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    path += ` L ${points[i].x} ${points[i].y}`;
+  }
+  return path;
+}
+
+// Get the appropriate path for the line style
+function getStyledBorderPath(lineStyle, shape, width, height, borderRadius) {
+  switch (lineStyle) {
+    case 'wavy':
+      return getWavyPath(shape, width, height, borderRadius, 3, 24);
+    case 'scribble':
+      return getScribblePath(shape, width, height, borderRadius);
+    default:
+      return getBorderPath(shape, width, height, borderRadius);
+  }
 }
 
 function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) {
@@ -480,7 +799,201 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) 
   return particles;
 }
 
-function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle' }) {
+// SVG-based border component for non-solid line styles
+function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, width, height }) {
+  const [r, g, b] = rgb;
+  const strokeStyle = getStrokeStyle(lineStyle);
+  const { glowBlur, glowOpacity } = effectIntensity;
+
+  // Estimate path length for animation (will be more accurate with actual measurement)
+  const estimatedPathLength = lineStyle === 'wavy' || lineStyle === 'scribble'
+    ? (2 * (width + height) * 1.1)
+    : (2 * (width + height));
+
+  // Trail length as percentage of path (25% visible trail)
+  const trailLength = estimatedPathLength * 0.25;
+  const gapLength = estimatedPathLength * 0.75;
+
+  const baseStrokeProps = {
+    fill: 'none',
+    strokeLinecap: strokeStyle.strokeLinecap,
+  };
+
+  // Build stroke-dasharray based on line style
+  let dashArray;
+  if (strokeStyle.strokeDasharray !== 'none') {
+    // For dotted/dashed, we need to combine with the trail effect
+    // Use a repeating pattern within the visible trail portion
+    dashArray = strokeStyle.strokeDasharray;
+  } else {
+    // For solid-based styles, use trail animation
+    dashArray = `${trailLength} ${gapLength}`;
+  }
+
+  const renderPath = (offset = 0, opacity = 1, extraFilter = '') => {
+    const strokeWidth = strokeStyle.strokeWidth + offset;
+    const style = {
+      '--path-length': `${estimatedPathLength}px`,
+      animation: `strokeTrace ${duration}s linear infinite`,
+      animationPlayState: active ? 'running' : 'paused',
+      filter: extraFilter || `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`,
+    };
+
+    // For dotted/dashed styles, animate the entire dasharray
+    if (strokeStyle.strokeDasharray !== 'none') {
+      // Create a mask effect: only show within the "trail" region
+      // This is achieved by having the stroke opacity fade based on position
+      const gradientId = `trail-gradient-${Math.random().toString(36).substr(2, 9)}`;
+      return (
+        <>
+          <defs>
+            <linearGradient id={gradientId} gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor={`rgb(${r}, ${g}, ${b})`} stopOpacity={opacity} />
+              <stop offset="75%" stopColor={`rgb(${r}, ${g}, ${b})`} stopOpacity={opacity * 0.5} />
+              <stop offset="100%" stopColor={`rgb(${r}, ${g}, ${b})`} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <path
+            d={path}
+            {...baseStrokeProps}
+            stroke={`rgb(${r}, ${g}, ${b})`}
+            strokeWidth={strokeWidth}
+            strokeDasharray={dashArray}
+            strokeOpacity={opacity}
+            style={style}
+          />
+        </>
+      );
+    }
+
+    return (
+      <path
+        d={path}
+        {...baseStrokeProps}
+        stroke={`rgb(${r}, ${g}, ${b})`}
+        strokeWidth={strokeWidth}
+        strokeDasharray={dashArray}
+        strokeOpacity={opacity}
+        style={style}
+      />
+    );
+  };
+
+  // Handle special line styles
+  if (strokeStyle.isDouble) {
+    // Render two parallel strokes
+    const spacing = strokeStyle.spacing;
+    return (
+      <svg
+        style={{
+          position: 'absolute',
+          inset: `-${spacing}px`,
+          width: `calc(100% + ${spacing * 2}px)`,
+          height: `calc(100% + ${spacing * 2}px)`,
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}
+        viewBox={`${-spacing} ${-spacing} ${width + spacing * 2} ${height + spacing * 2}`}
+      >
+        {/* Outer stroke */}
+        {renderPath(spacing, 0.8)}
+        {/* Inner stroke */}
+        {renderPath(-spacing * 0.5, 1)}
+      </svg>
+    );
+  }
+
+  if (strokeStyle.isGlow) {
+    // Render with extra glow layers
+    return (
+      <svg
+        style={{
+          position: 'absolute',
+          inset: '-4px',
+          width: 'calc(100% + 8px)',
+          height: 'calc(100% + 8px)',
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}
+        viewBox={`-4 -4 ${width + 8} ${height + 8}`}
+      >
+        {/* Outer glow */}
+        {renderPath(6, 0.2, `blur(6px)`)}
+        {/* Middle glow */}
+        {renderPath(3, 0.4, `blur(3px)`)}
+        {/* Core stroke */}
+        {renderPath(0, 1, `drop-shadow(0 0 ${glowBlur * 2}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`)}
+      </svg>
+    );
+  }
+
+  if (strokeStyle.isTapered) {
+    // Tapered effect: render multiple paths with varying widths
+    // Simulate tapering by overlaying strokes
+    const segments = 5;
+    const paths = [];
+    for (let i = 0; i < segments; i++) {
+      const t = i / (segments - 1);
+      // Width tapers from thick to thin
+      const segWidth = strokeStyle.strokeWidth * (2 - t * 1.5);
+      const segOpacity = 1 - t * 0.3;
+      // Each segment is offset in the animation
+      const segDelay = (t * 0.2 * duration);
+      paths.push(
+        <path
+          key={i}
+          d={path}
+          {...baseStrokeProps}
+          stroke={`rgb(${r}, ${g}, ${b})`}
+          strokeWidth={segWidth}
+          strokeDasharray={`${trailLength / segments} ${gapLength + trailLength * (segments - 1) / segments}`}
+          strokeOpacity={segOpacity}
+          style={{
+            '--path-length': `${estimatedPathLength}px`,
+            animation: `strokeTrace ${duration}s linear infinite`,
+            animationDelay: `-${segDelay}s`,
+            animationPlayState: active ? 'running' : 'paused',
+            filter: `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`,
+          }}
+        />
+      );
+    }
+    return (
+      <svg
+        style={{
+          position: 'absolute',
+          inset: '-4px',
+          width: 'calc(100% + 8px)',
+          height: 'calc(100% + 8px)',
+          pointerEvents: 'none',
+          overflow: 'visible',
+        }}
+        viewBox={`-4 -4 ${width + 8} ${height + 8}`}
+      >
+        {paths}
+      </svg>
+    );
+  }
+
+  // Default rendering for dotted, dashed, solid (via SVG), wavy, scribble
+  return (
+    <svg
+      style={{
+        position: 'absolute',
+        inset: '-4px',
+        width: 'calc(100% + 8px)',
+        height: 'calc(100% + 8px)',
+        pointerEvents: 'none',
+        overflow: 'visible',
+      }}
+      viewBox={`-4 -4 ${width + 8} ${height + 8}`}
+    >
+      {renderPath(0, 1)}
+    </svg>
+  );
+}
+
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
 
   useEffect(() => {
@@ -502,9 +1015,17 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
   const height = parseFloat(shapeStyles.wrapper.height) || 180;
   const borderPath = getBorderPath(shape, width, height, borderRadius);
 
+  // Get the styled path for SVG-based line styles
+  const styledBorderPath = useMemo(() => {
+    return getStyledBorderPath(lineStyle, shape, width, height, borderRadius);
+  }, [lineStyle, shape, width, height, borderRadius]);
+
   const particles = useMemo(() => {
     return generateBorderParticles(particleEffect, rgb, effectIntensity, duration, shape);
   }, [particleEffect, rgb, effectIntensity, duration, shape]);
+
+  // Use SVG border for non-solid line styles
+  const useSvgBorder = lineStyle !== 'solid';
 
   const borderStyles = {
     ...baseBorderStyles,
@@ -532,7 +1053,20 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
     <>
       <style>{keyframesStyle}</style>
       <div style={shapeStyles.wrapper}>
-        <div style={borderStyles} />
+        {useSvgBorder ? (
+          <SvgBorder
+            path={styledBorderPath}
+            rgb={rgb}
+            duration={duration}
+            active={active}
+            lineStyle={lineStyle}
+            effectIntensity={effectIntensity}
+            width={width}
+            height={height}
+          />
+        ) : (
+          <div style={borderStyles} />
+        )}
         {active && particleEffect !== 'none' && (
           <div style={particleContainerStyles}>
             {particles.map((particle) => {

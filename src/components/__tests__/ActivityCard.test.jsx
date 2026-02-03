@@ -42,4 +42,49 @@ describe('ActivityCard', () => {
     render(<ActivityCard shape="circle">Circle Card</ActivityCard>);
     expect(screen.getByText('Circle Card')).toBeDefined();
   });
+
+  it('renders with lineStyle="solid" (default)', () => {
+    render(<ActivityCard lineStyle="solid">Solid Line Card</ActivityCard>);
+    expect(screen.getByText('Solid Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="dotted"', () => {
+    render(<ActivityCard lineStyle="dotted">Dotted Line Card</ActivityCard>);
+    expect(screen.getByText('Dotted Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="dashed"', () => {
+    render(<ActivityCard lineStyle="dashed">Dashed Line Card</ActivityCard>);
+    expect(screen.getByText('Dashed Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="scribble"', () => {
+    render(<ActivityCard lineStyle="scribble">Scribble Line Card</ActivityCard>);
+    expect(screen.getByText('Scribble Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="double"', () => {
+    render(<ActivityCard lineStyle="double">Double Line Card</ActivityCard>);
+    expect(screen.getByText('Double Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="wavy"', () => {
+    render(<ActivityCard lineStyle="wavy">Wavy Line Card</ActivityCard>);
+    expect(screen.getByText('Wavy Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="glow"', () => {
+    render(<ActivityCard lineStyle="glow">Glow Line Card</ActivityCard>);
+    expect(screen.getByText('Glow Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle="tapered"', () => {
+    render(<ActivityCard lineStyle="tapered">Tapered Line Card</ActivityCard>);
+    expect(screen.getByText('Tapered Line Card')).toBeDefined();
+  });
+
+  it('renders with lineStyle on circle shape', () => {
+    render(<ActivityCard shape="circle" lineStyle="dotted">Circle Dotted Card</ActivityCard>);
+    expect(screen.getByText('Circle Dotted Card')).toBeDefined();
+  });
 });
