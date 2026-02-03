@@ -29,6 +29,15 @@ const keyframesStyle = `
   }
 }
 
+@keyframes followBorder {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
+}
+
 @keyframes cometTrail {
   0% {
     transform: translateX(0) scaleX(1);
@@ -300,7 +309,31 @@ function seededRandom(seed) {
   return x - Math.floor(x);
 }
 
-function generateParticles(effect, rgb, effectIntensity) {
+// Generate SVG path for the border based on shape
+function getBorderPath(shape, width, height, borderRadius) {
+  if (shape === 'circle') {
+    // For circle, use a circular path
+    const cx = width / 2;
+    const cy = height / 2;
+    const r = Math.min(width, height) / 2;
+    // Start from top center and go clockwise
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r}`;
+  }
+  // For rectangle with border radius
+  const r = Math.min(parseFloat(borderRadius) || 12, Math.min(width, height) / 2);
+  // Start from top-left corner after radius, go clockwise
+  return `M ${r} 0
+          L ${width - r} 0
+          Q ${width} 0 ${width} ${r}
+          L ${width} ${height - r}
+          Q ${width} ${height} ${width - r} ${height}
+          L ${r} ${height}
+          Q 0 ${height} 0 ${height - r}
+          L 0 ${r}
+          Q 0 0 ${r} 0`;
+}
+
+function generateBorderParticles(effect, rgb, effectIntensity, duration, shape) {
   if (effect === 'none' || !PARTICLE_EFFECTS.includes(effect)) {
     return [];
   }
@@ -315,6 +348,7 @@ function generateParticles(effect, rgb, effectIntensity) {
     particleBlurMultiplier: blurMult,
   } = effectIntensity;
 
+  // Particles follow the pulse head with slight offsets
   for (let i = 0; i < particleCount; i++) {
     const seed = i * 137.5;
     const random1 = seededRandom(seed);
@@ -322,149 +356,116 @@ function generateParticles(effect, rgb, effectIntensity) {
     const random3 = seededRandom(seed + 2);
     const random4 = seededRandom(seed + 3);
 
-    const angle = (i / particleCount) * 360;
-    const delay = (i / particleCount) * 2;
+    // Each particle trails behind the pulse head by a different amount
+    // Negative offset means trailing behind
+    const trailOffset = -(i / particleCount) * 0.15; // Trail within 15% of the path behind head
 
     let particle = {
       id: i,
+      trailOffset,
       style: {},
+      burstStyle: null,
     };
 
     switch (effect) {
       case 'sparkler': {
-        const distance = (20 + random1 * 30) * sizeMult;
-        const tx = Math.cos((angle * Math.PI) / 180) * distance;
-        const ty = Math.sin((angle * Math.PI) / 180) * distance;
-        const size = Math.round(4 * sizeMult);
+        const size = Math.round((3 + random1 * 3) * sizeMult);
         const blur1 = Math.round(4 * blurMult);
         const blur2 = Math.round(8 * blurMult);
+        // Sparkler bursts outward from the path
+        const burstAngle = (random2 - 0.5) * 180; // Random angle perpendicular-ish
+        const burstDistance = (15 + random3 * 25) * sizeMult;
+        const tx = Math.cos((burstAngle * Math.PI) / 180) * burstDistance;
+        const ty = Math.sin((burstAngle * Math.PI) / 180) * burstDistance;
         particle.style = {
-          position: 'absolute',
           width: `${size}px`,
           height: `${size}px`,
           borderRadius: '50%',
           backgroundColor: `rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult})`,
           boxShadow: `0 0 ${blur1}px rgba(${r}, ${g}, ${b}, ${0.8 * opacityMult}), 0 0 ${blur2}px rgba(${r}, ${g}, ${b}, ${0.5 * opacityMult})`,
-          left: `${50 + random2 * 10 - 5}%`,
-          top: `${50 + random3 * 10 - 5}%`,
           '--tx': `${tx}px`,
           '--ty': `${ty}px`,
-          animation: `sparklerBurst ${0.6 + random4 * 0.4}s ease-out infinite`,
-          animationDelay: `${delay}s`,
         };
+        particle.burstAnimation = `sparklerBurst ${0.4 + random4 * 0.3}s ease-out infinite`;
+        particle.burstDelay = `${random1 * 0.5}s`;
         break;
       }
       case 'comet': {
-        const positionOnBorder = i / particleCount;
-        let left, top;
-        if (positionOnBorder < 0.25) {
-          left = `${positionOnBorder * 400}%`;
-          top = '0%';
-        } else if (positionOnBorder < 0.5) {
-          left = '100%';
-          top = `${(positionOnBorder - 0.25) * 400}%`;
-        } else if (positionOnBorder < 0.75) {
-          left = `${100 - (positionOnBorder - 0.5) * 400}%`;
-          top = '100%';
-        } else {
-          left = '0%';
-          top = `${100 - (positionOnBorder - 0.75) * 400}%`;
-        }
-        const trailWidth = Math.round((8 + random1 * 8) * sizeMult);
-        const trailDistance = Math.round((-15 - random2 * 15) * sizeMult);
+        const trailWidth = Math.round((6 + random1 * 6) * sizeMult);
         particle.style = {
-          position: 'absolute',
           width: `${trailWidth}px`,
           height: `${Math.max(2, Math.round(2 * sizeMult))}px`,
           borderRadius: '2px',
           background: `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult}), rgba(${r}, ${g}, ${b}, 0))`,
-          left,
-          top,
-          '--trail-distance': `${trailDistance}px`,
-          animation: `cometTrail ${0.8 + random3 * 0.4}s ease-out infinite`,
-          animationDelay: `${delay}s`,
           transformOrigin: 'right center',
         };
+        // Comet trails just follow along the path
+        particle.trailOffset = -(i / particleCount) * 0.25; // Longer trail for comet
         break;
       }
       case 'stardust': {
-        const starSize = Math.round((3 + random1 * 3) * sizeMult);
+        const starSize = Math.round((2 + random1 * 3) * sizeMult);
         const blur = Math.round(3 * blurMult);
-        const driftX = Math.round((random4 - 0.5) * 40 * sizeMult);
-        const driftY = Math.round((random1 - 0.5) * 40 * sizeMult);
+        const driftX = Math.round((random4 - 0.5) * 20 * sizeMult);
+        const driftY = Math.round((random1 - 0.5) * 20 * sizeMult);
         particle.style = {
-          position: 'absolute',
           width: `${starSize}px`,
           height: `${starSize}px`,
           borderRadius: '50%',
           backgroundColor: `rgba(${r}, ${g}, ${b}, ${0.7 * opacityMult})`,
           boxShadow: `0 0 ${blur}px rgba(${r}, ${g}, ${b}, ${0.6 * opacityMult})`,
-          left: `${random2 * 100}%`,
-          top: `${random3 * 100}%`,
           '--drift-x': `${driftX}px`,
           '--drift-y': `${driftY}px`,
-          animation: `stardustFloat ${3 + random2 * 2}s ease-in-out infinite, stardustTwinkle ${1 + random3}s ease-in-out infinite`,
-          animationDelay: `${delay}s, ${random4}s`,
         };
+        particle.burstAnimation = `stardustFloat ${1.5 + random2 * 1}s ease-in-out infinite, stardustTwinkle ${0.8 + random3 * 0.5}s ease-in-out infinite`;
+        particle.burstDelay = `${random4 * 0.3}s, ${random1 * 0.2}s`;
         break;
       }
       case 'ember': {
-        const startX = 10 + random2 * 80;
-        const emberSize = Math.round((4 + random1 * 4) * sizeMult);
+        const emberSize = Math.round((3 + random1 * 3) * sizeMult);
         const blur = Math.round(6 * blurMult);
-        const riseDistance = Math.round((-40 - random4 * 40) * sizeMult);
+        const riseDistance = Math.round((-25 - random4 * 25) * sizeMult);
         particle.style = {
-          position: 'absolute',
           width: `${emberSize}px`,
           height: `${emberSize}px`,
           borderRadius: '50%',
           background: `radial-gradient(circle, rgba(${Math.min(255, r + 50)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 50)}, ${0.9 * opacityMult}), rgba(${r}, ${g}, ${b}, ${0.6 * opacityMult}))`,
           boxShadow: `0 0 ${blur}px rgba(${r}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 50)}, ${0.8 * opacityMult})`,
-          left: `${startX}%`,
-          bottom: `${10 + random3 * 20}%`,
           '--rise-distance': `${riseDistance}px`,
-          animation: `emberRise ${2 + random1 * 1.5}s ease-out infinite, emberGlow ${0.5 + random2 * 0.5}s ease-in-out infinite`,
-          animationDelay: `${delay}s, ${random3}s`,
         };
+        particle.burstAnimation = `emberRise ${1.2 + random1 * 0.8}s ease-out infinite, emberGlow ${0.4 + random2 * 0.3}s ease-in-out infinite`;
+        particle.burstDelay = `${random3 * 0.3}s, ${random4 * 0.2}s`;
         break;
       }
       case 'electric': {
-        const startY = 10 + random2 * 80;
-        const isLeft = i % 2 === 0;
-        const boltWidth = Math.round((10 + random1 * 15) * sizeMult);
+        const boltWidth = Math.round((8 + random1 * 10) * sizeMult);
         const blur1 = Math.round(4 * blurMult);
         const blur2 = Math.round(8 * blurMult);
+        const isOutward = i % 2 === 0;
         particle.style = {
-          position: 'absolute',
           width: `${boltWidth}px`,
           height: `${Math.max(2, Math.round(2 * sizeMult))}px`,
-          background: `linear-gradient(${isLeft ? '90deg' : '270deg'}, rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult}), rgba(${Math.min(255, r + 100)}, ${Math.min(255, g + 100)}, ${Math.min(255, b + 100)}, ${0.3 * opacityMult}))`,
+          background: `linear-gradient(${isOutward ? '0deg' : '180deg'}, rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult}), rgba(${Math.min(255, r + 100)}, ${Math.min(255, g + 100)}, ${Math.min(255, b + 100)}, ${0.3 * opacityMult}))`,
           boxShadow: `0 0 ${blur1}px rgba(${r}, ${g}, ${b}, ${0.8 * opacityMult}), 0 0 ${blur2}px rgba(${r}, ${g}, ${b}, ${0.4 * opacityMult})`,
-          left: isLeft ? '0%' : 'auto',
-          right: isLeft ? 'auto' : '0%',
-          top: `${startY}%`,
-          animation: `electricCrackle ${0.15 + random3 * 0.1}s linear infinite`,
-          animationDelay: `${delay + random4}s`,
-          transformOrigin: isLeft ? 'left center' : 'right center',
+          transformOrigin: 'center bottom',
         };
+        particle.burstAnimation = `electricCrackle ${0.12 + random3 * 0.08}s linear infinite`;
+        particle.burstDelay = `${random4 * 0.5}s`;
         break;
       }
       case 'bubble': {
-        const bubbleSize = Math.round((6 + random1 * 8) * sizeMult);
-        const floatDistance = Math.round((-60 - random3 * 60) * sizeMult);
+        const bubbleSize = Math.round((5 + random1 * 6) * sizeMult);
+        const floatDistance = Math.round((-35 - random3 * 35) * sizeMult);
         particle.style = {
-          position: 'absolute',
           width: `${bubbleSize}px`,
           height: `${bubbleSize}px`,
           borderRadius: '50%',
           background: `radial-gradient(circle at 30% 30%, rgba(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)}, ${0.4 * opacityMult}), rgba(${r}, ${g}, ${b}, ${0.2 * opacityMult}))`,
           border: `1px solid rgba(${r}, ${g}, ${b}, ${0.4 * opacityMult})`,
-          left: `${10 + random2 * 80}%`,
-          bottom: '5%',
           '--float-distance': `${floatDistance}px`,
-          animation: `bubbleFloat ${2.5 + random1 * 1.5}s ease-out infinite, bubbleWobble ${0.8 + random4 * 0.4}s ease-in-out infinite`,
-          animationDelay: `${delay}s, ${random2}s`,
         };
+        particle.burstAnimation = `bubbleFloat ${1.8 + random1 * 1}s ease-out infinite, bubbleWobble ${0.6 + random4 * 0.3}s ease-in-out infinite`;
+        particle.burstDelay = `${random2 * 0.3}s, ${random3 * 0.2}s`;
         break;
       }
       default:
@@ -491,12 +492,17 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
   const { glowBlur, glowBlur2, glowOpacity } = effectIntensity;
   const glowColor = `rgba(${r}, ${g}, ${b}, ${glowOpacity})`;
 
-  const particles = useMemo(() => {
-    return generateParticles(particleEffect, rgb, effectIntensity);
-  }, [particleEffect, rgb, effectIntensity]);
-
   const shapeStyles = SHAPE_STYLES[shape] || SHAPE_STYLES.rectangle;
   const { borderRadius } = shapeStyles;
+
+  // Get dimensions for path calculation
+  const width = parseFloat(shapeStyles.wrapper.width) || 300;
+  const height = parseFloat(shapeStyles.wrapper.height) || 180;
+  const borderPath = getBorderPath(shape, width, height, borderRadius);
+
+  const particles = useMemo(() => {
+    return generateBorderParticles(particleEffect, rgb, effectIntensity, duration, shape);
+  }, [particleEffect, rgb, effectIntensity, duration, shape]);
 
   const borderStyles = {
     ...baseBorderStyles,
@@ -516,7 +522,7 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
     position: 'absolute',
     inset: 0,
     borderRadius,
-    overflow: 'hidden',
+    overflow: 'visible', // Allow particles to burst outward
     pointerEvents: 'none',
   };
 
@@ -527,15 +533,37 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
         <div style={borderStyles} />
         {active && particleEffect !== 'none' && (
           <div style={particleContainerStyles}>
-            {particles.map((particle) => (
-              <div
-                key={particle.id}
-                style={{
-                  ...particle.style,
-                  animationPlayState: active ? 'running' : 'paused',
-                }}
-              />
-            ))}
+            {particles.map((particle) => {
+              // Calculate the offset-distance delay to trail behind pulse head
+              // Pulse head is at offset-distance: 100% at end of animation
+              // We use negative animation-delay to make particles start behind the head
+              const trailDelay = particle.trailOffset * duration;
+
+              const pathFollowStyle = {
+                position: 'absolute',
+                offsetPath: `path('${borderPath}')`,
+                offsetRotate: '0deg',
+                animation: `followBorder ${duration}s linear infinite`,
+                animationDelay: `${trailDelay}s`,
+                animationPlayState: active ? 'running' : 'paused',
+              };
+
+              return (
+                <div
+                  key={particle.id}
+                  style={pathFollowStyle}
+                >
+                  <div
+                    style={{
+                      ...particle.style,
+                      animation: particle.burstAnimation || 'none',
+                      animationDelay: particle.burstDelay || '0s',
+                      animationPlayState: active ? 'running' : 'paused',
+                    }}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
         <div style={contentStyles}>
