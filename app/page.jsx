@@ -43,9 +43,13 @@ const themeToggleStyle = {
   cursor: 'pointer',
 }
 
+const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 'bubble']
+const PARTICLE_COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', '#22c55e']
+
 export default function Home() {
   const [isActive, setIsActive] = useState(true)
   const [customSpeed, setCustomSpeed] = useState(3)
+  const [selectedEffect, setSelectedEffect] = useState('sparkler')
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
@@ -173,24 +177,69 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Particle Effects */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Particle Effects</div>
+        <div style={gridStyle}>
+          {PARTICLE_EFFECTS.map((effect, index) => (
+            <ActivityCard key={effect} color={PARTICLE_COLORS[index]} particleEffect={effect}>
+              <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+                <div style={{ fontSize: '1rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{effect}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  particleEffect=&quot;{effect}&quot;
+                </div>
+              </div>
+            </ActivityCard>
+          ))}
+        </div>
+      </section>
+
+      {/* Interactive Particle Effect Selector */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Interactive Particle Effect Selector</div>
+        <ActivityCard color="#ec4899" particleEffect={selectedEffect} speed={customSpeed}>
+          <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+            <div style={{ marginBottom: '0.5rem' }}>Effect: <strong style={{ textTransform: 'capitalize' }}>{selectedEffect}</strong></div>
+            <select
+              value={selectedEffect}
+              onChange={(e) => setSelectedEffect(e.target.value)}
+              style={{
+                padding: '0.5rem',
+                fontSize: '1rem',
+                borderRadius: '6px',
+                border: '1px solid var(--text-muted)',
+                backgroundColor: 'var(--bg-color)',
+                color: 'var(--text-color)',
+                cursor: 'pointer',
+              }}
+            >
+              <option value="none">None</option>
+              {PARTICLE_EFFECTS.map((effect) => (
+                <option key={effect} value={effect}>{effect.charAt(0).toUpperCase() + effect.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+        </ActivityCard>
+      </section>
+
       {/* Different Content Types */}
       <section style={sectionStyle}>
         <div style={labelStyle}>Different Content Types</div>
         <div style={gridStyle}>
-          <ActivityCard color="#8b5cf6">
+          <ActivityCard color="#8b5cf6" particleEffect="stardust">
             <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🚀</div>
               <div>Processing...</div>
             </div>
           </ActivityCard>
-          <ActivityCard color="#06b6d4">
+          <ActivityCard color="#06b6d4" particleEffect="bubble">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '1rem' }}>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Status</div>
               <div style={{ fontSize: '1.25rem', color: 'var(--text-color)', fontWeight: 'bold' }}>42 items</div>
               <div style={{ fontSize: '0.875rem', color: '#22c55e' }}>+12% from last hour</div>
             </div>
           </ActivityCard>
-          <ActivityCard color="#f43f5e">
+          <ActivityCard color="#f43f5e" particleEffect="electric">
             <div style={{ textAlign: 'center' }}>
               <button
                 style={{

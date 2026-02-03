@@ -22,4 +22,14 @@ describe('ActivityCard', () => {
     render(<ActivityCard active={false}>Inactive Card</ActivityCard>);
     expect(screen.getByText('Inactive Card')).toBeDefined();
   });
+
+  it('renders with particleEffect prop', () => {
+    render(<ActivityCard particleEffect="sparkler">Sparkler Card</ActivityCard>);
+    expect(screen.getByText('Sparkler Card')).toBeDefined();
+  });
+
+  it('renders with particleEffect="none"', () => {
+    render(<ActivityCard particleEffect="none">No Particles</ActivityCard>);
+    expect(screen.getByText('No Particles')).toBeDefined();
+  });
 });
