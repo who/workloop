@@ -144,6 +144,34 @@ export default function Home() {
         </ActivityCard>
       </section>
 
+      {/* Speed-Based Intensity */}
+      <section style={sectionStyle}>
+        <div style={labelStyle}>Speed-Based Intensity (with Particles)</div>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.875rem' }}>
+          Faster speeds produce more intense effects: brighter glow, more particles, larger sizes.
+        </p>
+        <div style={gridStyle}>
+          <ActivityCard speed={7} color="#f59e0b" particleEffect="sparkler">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Very Slow (7s)</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Subtle glow, fewer particles</div>
+            </div>
+          </ActivityCard>
+          <ActivityCard speed="normal" color="#f59e0b" particleEffect="sparkler">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Normal (3s)</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Balanced intensity</div>
+            </div>
+          </ActivityCard>
+          <ActivityCard speed={0.8} color="#f59e0b" particleEffect="sparkler">
+            <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
+              <div style={{ fontSize: '0.875rem', fontWeight: 'bold' }}>Very Fast (0.8s)</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Intense glow, more particles</div>
+            </div>
+          </ActivityCard>
+        </div>
+      </section>
+
       {/* Inactive State */}
       <section style={sectionStyle}>
         <div style={labelStyle}>Inactive State (active=false)</div>
