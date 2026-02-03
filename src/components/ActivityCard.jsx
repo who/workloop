@@ -83,6 +83,7 @@ const contentStyles = {
   height: '100%',
   borderRadius: '12px',
   backgroundColor: 'rgba(128, 128, 128, 0.1)',
+  border: '1px solid rgba(128, 128, 128, 0.2)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
