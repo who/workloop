@@ -340,39 +340,67 @@ const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 
 
 const LINE_STYLES = ['solid', 'scribble', 'double', 'wavy', 'glow', 'tapered'];
 
+const HEAD_SHAPES = ['round', 'flat', 'pointed', 'soft'];
+
+// Map head shape to SVG strokeLinecap value
+function getStrokeLinecapFromShape(headShape) {
+  switch (headShape) {
+    case 'flat':
+      return 'butt';
+    case 'pointed':
+      return 'butt'; // Pointed uses butt + custom marker
+    case 'soft':
+      return 'round'; // Soft uses round + blur
+    case 'round':
+    default:
+      return 'round';
+  }
+}
+
 // Get SVG stroke properties for different line styles
-function getStrokeStyle(lineStyle, baseStrokeWidth = 2) {
+function getStrokeStyle(lineStyle, baseStrokeWidth = 2, headShape = 'round', headSize = 1) {
+  const strokeLinecap = getStrokeLinecapFromShape(headShape);
+  const sizeMultiplier = headSize;
+
   switch (lineStyle) {
     case 'double':
       // Double lines are rendered as two separate paths
       return {
         strokeDasharray: 'none',
-        strokeLinecap: 'round',
-        strokeWidth: baseStrokeWidth * 0.6,
+        strokeLinecap,
+        strokeWidth: baseStrokeWidth * 0.6 * sizeMultiplier,
         isDouble: true,
         spacing: baseStrokeWidth * 1.5,
+        headShape,
+        headSize: sizeMultiplier,
       };
     case 'glow':
       return {
         strokeDasharray: 'none',
-        strokeLinecap: 'round',
-        strokeWidth: baseStrokeWidth * 2,
+        strokeLinecap,
+        strokeWidth: baseStrokeWidth * 2 * sizeMultiplier,
         isGlow: true,
+        headShape,
+        headSize: sizeMultiplier,
       };
     case 'tapered':
       // Tapered uses stroke-dasharray to simulate varying thickness
       return {
         strokeDasharray: 'none',
-        strokeLinecap: 'round',
-        strokeWidth: baseStrokeWidth,
+        strokeLinecap,
+        strokeWidth: baseStrokeWidth * sizeMultiplier,
         isTapered: true,
+        headShape,
+        headSize: sizeMultiplier,
       };
     case 'solid':
     default:
       return {
         strokeDasharray: 'none',
-        strokeLinecap: 'round',
-        strokeWidth: baseStrokeWidth,
+        strokeLinecap,
+        strokeWidth: baseStrokeWidth * sizeMultiplier,
+        headShape,
+        headSize: sizeMultiplier,
       };
   }
 }
@@ -930,9 +958,9 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, 
 }
 
 // SVG-based border component for non-solid line styles
-function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, width, height }) {
+function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, width, height, headShape, headSize }) {
   const [r, g, b] = rgb;
-  const strokeStyle = getStrokeStyle(lineStyle);
+  const strokeStyle = getStrokeStyle(lineStyle, 2, headShape, headSize);
   const { glowBlur, glowOpacity } = effectIntensity;
 
   // Estimate path length for animation (will be more accurate with actual measurement)
@@ -943,6 +971,15 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // Trail length as percentage of path (25% visible trail)
   const trailLength = estimatedPathLength * 0.25;
   const gapLength = estimatedPathLength * 0.75;
+
+  // Base filter for the shape
+  const getBaseFilter = () => {
+    if (headShape === 'soft') {
+      // Soft shape adds blur to soften edges
+      return `blur(1px) drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`;
+    }
+    return `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`;
+  };
 
   const baseStrokeProps = {
     fill: 'none',
@@ -958,7 +995,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
       '--path-length': `${estimatedPathLength}px`,
       animation: `strokeTrace ${duration}s linear infinite`,
       animationPlayState: active ? 'running' : 'paused',
-      filter: extraFilter || `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`,
+      filter: extraFilter || getBaseFilter(),
     };
 
     return (
@@ -970,6 +1007,33 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         strokeDasharray={dashArray}
         strokeOpacity={opacity}
         style={style}
+      />
+    );
+  };
+
+  // For pointed shape, render an additional tapered overlay at the head
+  const renderPointedHead = () => {
+    if (headShape !== 'pointed') return null;
+    // Create a shorter, tapered dash that leads the main stroke
+    const pointedLength = trailLength * 0.15;
+    const pointedGap = gapLength + trailLength - pointedLength;
+    const pointedDashArray = `${pointedLength} ${pointedGap}`;
+
+    return (
+      <path
+        d={path}
+        fill="none"
+        strokeLinecap="round"
+        stroke={`rgb(${r}, ${g}, ${b})`}
+        strokeWidth={strokeStyle.strokeWidth * 0.5}
+        strokeDasharray={pointedDashArray}
+        strokeOpacity={1}
+        style={{
+          '--path-length': `${estimatedPathLength}px`,
+          animation: `strokeTrace ${duration}s linear infinite`,
+          animationPlayState: active ? 'running' : 'paused',
+          filter: `drop-shadow(0 0 ${glowBlur * 1.5}px rgba(${r}, ${g}, ${b}, ${glowOpacity * 1.2}))`,
+        }}
       />
     );
   };
@@ -994,6 +1058,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         {renderPath(spacing, 0.8)}
         {/* Inner stroke */}
         {renderPath(-spacing * 0.5, 1)}
+        {renderPointedHead()}
       </svg>
     );
   }
@@ -1018,6 +1083,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         {renderPath(3, 0.4, `blur(3px)`)}
         {/* Core stroke */}
         {renderPath(0, 1, `drop-shadow(0 0 ${glowBlur * 2}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`)}
+        {renderPointedHead()}
       </svg>
     );
   }
@@ -1066,6 +1132,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         viewBox={`-4 -4 ${width + 8} ${height + 8}`}
       >
         {paths}
+        {renderPointedHead()}
       </svg>
     );
   }
@@ -1084,6 +1151,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
       viewBox={`-4 -4 ${width + 8} ${height + 8}`}
     >
       {renderPath(0, 1)}
+      {renderPointedHead()}
     </svg>
   );
 }
@@ -1183,7 +1251,7 @@ function BorderParticles({ particles, active, duration, shape, width, height, bo
   );
 }
 
-function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid', particleFollowDistance = 0 }) {
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid', particleFollowDistance = 0, headSize = 1, headShape = 'round' }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
   const [hovered, setHovered] = useState(false);
 
@@ -1264,6 +1332,8 @@ function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'nor
             effectIntensity={effectIntensity}
             width={width}
             height={height}
+            headSize={headSize}
+            headShape={headShape}
           />
         ) : (
           <div style={borderStyles} />
