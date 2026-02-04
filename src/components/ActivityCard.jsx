@@ -789,9 +789,14 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, 
     particleBlurMultiplier: blurMult,
   } = effectIntensity;
 
-  // Base trail distance as percentage of path
-  // particleFollowDistance=0 means particles at head, higher values = particles trail further behind
-  const baseTrailDistance = 0.15 * particleFollowDistance;
+  // Base spread ensures particles are always dispersed along the path
+  // This creates visible spacing between individual particles
+  const baseSpread = 0.08; // 8% of the path as minimum spread
+
+  // particleFollowDistance adds additional trail distance behind the pulse head
+  // 0 = particles at head with base spread, higher values = particles trail further behind
+  const additionalTrailDistance = 0.15 * particleFollowDistance;
+  const totalTrailDistance = baseSpread + additionalTrailDistance;
 
   // Particles follow the pulse head with slight offsets
   for (let i = 0; i < particleCount; i++) {
@@ -803,7 +808,8 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, 
 
     // Each particle trails behind the pulse head by a different amount
     // Negative offset means trailing behind
-    const trailOffset = -(i / particleCount) * baseTrailDistance;
+    // Distribute particles evenly along the trail distance
+    const trailOffset = -(i / particleCount) * totalTrailDistance;
 
     let particle = {
       id: i,
@@ -844,8 +850,8 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, 
           background: `linear-gradient(90deg, rgba(${r}, ${g}, ${b}, ${0.9 * opacityMult}), rgba(${r}, ${g}, ${b}, 0))`,
           transformOrigin: 'right center',
         };
-        // Comet trails just follow along the path (uses 1.67x base trail for longer effect)
-        particle.trailOffset = -(i / particleCount) * baseTrailDistance * 1.67;
+        // Comet trails just follow along the path (uses 1.67x total trail for longer effect)
+        particle.trailOffset = -(i / particleCount) * totalTrailDistance * 1.67;
         break;
       }
       case 'stardust': {

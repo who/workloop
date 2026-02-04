@@ -77,7 +77,8 @@ test.describe('ActivityCard Demo Page', () => {
     test('renders all line styles', async ({ page }) => {
       const section = page.locator('section').filter({ hasText: 'Line Style Variations' }).first();
 
-      const lineStyles = ['Solid', 'Dotted', 'Dashed', 'Scribble', 'Double', 'Wavy', 'Glow', 'Tapered'];
+      // Note: Dotted and Dashed styles were removed in wl-952
+      const lineStyles = ['Solid', 'Scribble', 'Double', 'Wavy', 'Glow', 'Tapered'];
       for (const style of lineStyles) {
         await expect(section.locator(`text=${style}`).first()).toBeVisible();
       }
@@ -88,7 +89,8 @@ test.describe('ActivityCard Demo Page', () => {
     test('renders circle shapes with different line styles', async ({ page }) => {
       const section = page.locator('section').filter({ hasText: 'Line Styles on Circle' });
 
-      await expect(section.locator('text=Dotted Circle')).toBeVisible();
+      // Note: Dotted Circle was replaced with Double Circle in wl-952
+      await expect(section.locator('text=Double Circle')).toBeVisible();
       await expect(section.locator('text=Wavy Circle')).toBeVisible();
       await expect(section.locator('text=Glow Circle')).toBeVisible();
       await expect(section.locator('text=Scribble Circle')).toBeVisible();
@@ -234,5 +236,132 @@ test.describe('Animation Behavior', () => {
     // Resume
     await toggleButton.click();
     await page.waitForTimeout(1000);
+  });
+});
+
+test.describe('Particle Behavior', () => {
+  // Helper function to find particle positions
+  // Retries until particles are found with valid positions (JS animation running)
+  async function getParticlePositions(page: import('@playwright/test').Page, maxAttempts = 10) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const particleData = await page.evaluate(() => {
+        // Find all divs that could be particle containers
+        // Particle containers have overflow:visible, pointer-events:none, position:absolute
+        // and contain children with left/top positioning (set by JS animation)
+        const allDivs = document.querySelectorAll('div');
+        let particleContainer: Element | null = null;
+
+        for (const div of allDivs) {
+          const style = window.getComputedStyle(div);
+          // Look for container characteristics
+          if (style.overflow === 'visible' && style.pointerEvents === 'none' && style.position === 'absolute') {
+            // Check if children have left/top positioning (are particles)
+            const children = div.children;
+            if (children.length >= 4) {
+              const firstChild = children[0] as HTMLElement;
+              const firstChildStyle = firstChild.getAttribute('style') || '';
+              if (firstChildStyle.includes('left:') && firstChildStyle.includes('top:')) {
+                particleContainer = div;
+                break;
+              }
+            }
+          }
+        }
+
+        if (!particleContainer) {
+          return { error: 'No particle containers found', positions: [] as { left: number; top: number }[], count: 0 };
+        }
+
+        const particles = particleContainer.children;
+        const positions: { left: number; top: number }[] = [];
+
+        for (let i = 0; i < particles.length; i++) {
+          const particle = particles[i] as HTMLElement;
+          const style = particle.getAttribute('style') || '';
+          const leftMatch = style.match(/left:\s*([\d.]+)px/);
+          const topMatch = style.match(/top:\s*([\d.]+)px/);
+          if (leftMatch && topMatch) {
+            positions.push({
+              left: parseFloat(leftMatch[1]),
+              top: parseFloat(topMatch[1]),
+            });
+          }
+        }
+
+        return { positions, count: particles.length };
+      });
+
+      if (!particleData.error && particleData.positions.length >= 4) {
+        return particleData;
+      }
+
+      // Wait a bit and retry - animations may not have started yet
+      await page.waitForTimeout(200);
+    }
+
+    return { error: 'No particle containers found after retries', positions: [], count: 0 };
+  }
+
+  test('particles are properly dispersed and not clumped together', async ({ page }) => {
+    await page.goto('/');
+
+    // Wait for React hydration and animation frames to start
+    await page.waitForTimeout(500);
+
+    const particleData = await getParticlePositions(page);
+
+    // Verify we found particles
+    expect(particleData.error).toBeUndefined();
+    expect(particleData.count).toBeGreaterThanOrEqual(8);
+    expect(particleData.positions.length).toBeGreaterThanOrEqual(4);
+
+    const positions = particleData.positions;
+
+    // Calculate distances between consecutive particles
+    // Particles should NOT all be at the same position (clumped)
+    const distances: number[] = [];
+    for (let i = 1; i < positions.length; i++) {
+      const dx = positions[i].left - positions[i - 1].left;
+      const dy = positions[i].top - positions[i - 1].top;
+      distances.push(Math.sqrt(dx * dx + dy * dy));
+    }
+
+    // At least some particles should be separated by more than 2 pixels
+    // (If all distances are 0 or near 0, particles are clumped)
+    const spreadParticles = distances.filter(d => d > 2);
+    expect(spreadParticles.length).toBeGreaterThan(0);
+  });
+
+  test('particle follow distance from pulse head is within acceptable range', async ({ page }) => {
+    await page.goto('/');
+
+    // Wait for React hydration and animation frames to start
+    await page.waitForTimeout(500);
+
+    const particleData = await getParticlePositions(page);
+
+    // Verify we found particles
+    expect(particleData.error).toBeUndefined();
+    expect(particleData.positions.length).toBeGreaterThanOrEqual(4);
+
+    const positions = particleData.positions;
+
+    // Find the range of positions (spread of particles)
+    const minX = Math.min(...positions.map(p => p.left));
+    const maxX = Math.max(...positions.map(p => p.left));
+    const minY = Math.min(...positions.map(p => p.top));
+    const maxY = Math.max(...positions.map(p => p.top));
+
+    // Calculate the span of particles
+    const spanX = maxX - minX;
+    const spanY = maxY - minY;
+    const totalSpan = Math.sqrt(spanX * spanX + spanY * spanY);
+
+    // Particles should have some spread (not all clumped at one point)
+    // but also not too far behind the pulse head
+    // A span of at least 5px indicates proper dispersion
+    // A span less than 100px indicates they're following close to the head
+    expect(totalSpan).toBeGreaterThan(5);
+    expect(totalSpan).toBeLessThan(150);
   });
 });
