@@ -985,8 +985,8 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // Base filter for the shape
   const getBaseFilter = () => {
     if (headShape === 'soft') {
-      // Soft shape adds blur to soften edges
-      return `blur(1px) drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`;
+      // Soft shape adds significant blur and expanded glow for dreamy effect
+      return `blur(3px) drop-shadow(0 0 ${glowBlur * 3}px rgba(${r}, ${g}, ${b}, ${glowOpacity * 1.5}))`;
     }
     return `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`;
   };
@@ -1025,10 +1025,98 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // For pointed shape, render an additional tapered overlay at the head
   const renderPointedHead = () => {
     if (headShape !== 'pointed') return null;
-    // Create a shorter, tapered dash that leads the main stroke
-    const pointedLength = trailLength * 0.15;
-    const pointedGap = gapLength + trailLength - pointedLength;
-    const pointedDashArray = `${pointedLength} ${pointedGap}`;
+    // Create multiple layered strokes to simulate an arrow/pointed effect
+    // Each layer is progressively shorter and narrower to create a taper
+    const layers = [];
+    const baseWidth = strokeStyle.strokeWidth;
+
+    for (let i = 0; i < 4; i++) {
+      const fraction = 1 - (i / 4);
+      const layerLength = trailLength * 0.08 * fraction;
+      const layerWidth = baseWidth * (2.5 - i * 0.5);
+      const layerGap = gapLength + trailLength - layerLength;
+      const layerDashArray = `${layerLength} ${layerGap}`;
+      const layerOpacity = 0.4 + (i * 0.15);
+
+      layers.push(
+        <path
+          key={`pointed-layer-${i}`}
+          d={path}
+          fill="none"
+          strokeLinecap="round"
+          stroke={`rgb(${r}, ${g}, ${b})`}
+          strokeWidth={layerWidth}
+          strokeDasharray={layerDashArray}
+          strokeOpacity={layerOpacity}
+          style={{
+            '--path-length': `${actualPathLength}px`,
+            animation: `strokeTrace ${duration}s linear infinite`,
+            animationPlayState: active ? 'running' : 'paused',
+            filter: `drop-shadow(0 0 ${glowBlur * 2}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`,
+          }}
+        />
+      );
+    }
+
+    // Add a bright tip at the very front
+    const tipLength = trailLength * 0.02;
+    const tipGap = gapLength + trailLength - tipLength;
+    layers.push(
+      <path
+        key="pointed-tip"
+        d={path}
+        fill="none"
+        strokeLinecap="round"
+        stroke="#ffffff"
+        strokeWidth={baseWidth * 0.8}
+        strokeDasharray={`${tipLength} ${tipGap}`}
+        strokeOpacity={0.9}
+        style={{
+          '--path-length': `${actualPathLength}px`,
+          animation: `strokeTrace ${duration}s linear infinite`,
+          animationPlayState: active ? 'running' : 'paused',
+          filter: `drop-shadow(0 0 ${glowBlur}px rgba(255, 255, 255, 0.8))`,
+        }}
+      />
+    );
+
+    return <>{layers}</>;
+  };
+
+  // For flat shape, render a sharp bright edge at the head
+  const renderFlatHead = () => {
+    if (headShape !== 'flat') return null;
+    // Create a sharp, bright edge at the front to emphasize the flat termination
+    const edgeLength = trailLength * 0.015;
+    const edgeGap = gapLength + trailLength - edgeLength;
+    const edgeDashArray = `${edgeLength} ${edgeGap}`;
+
+    return (
+      <path
+        d={path}
+        fill="none"
+        strokeLinecap="butt"
+        stroke="#ffffff"
+        strokeWidth={strokeStyle.strokeWidth * 1.8}
+        strokeDasharray={edgeDashArray}
+        strokeOpacity={0.95}
+        style={{
+          '--path-length': `${actualPathLength}px`,
+          animation: `strokeTrace ${duration}s linear infinite`,
+          animationPlayState: active ? 'running' : 'paused',
+          filter: `drop-shadow(0 0 ${glowBlur * 0.5}px rgba(255, 255, 255, 0.9))`,
+        }}
+      />
+    );
+  };
+
+  // For soft shape, render an additional diffuse glow at the head
+  const renderSoftHead = () => {
+    if (headShape !== 'soft') return null;
+    // Create a prominent diffuse glow at the head for a dreamy effect
+    const glowLength = trailLength * 0.3;
+    const glowGap = gapLength + trailLength - glowLength;
+    const glowDashArray = `${glowLength} ${glowGap}`;
 
     return (
       <path
@@ -1036,14 +1124,14 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         fill="none"
         strokeLinecap="round"
         stroke={`rgb(${r}, ${g}, ${b})`}
-        strokeWidth={strokeStyle.strokeWidth * 0.5}
-        strokeDasharray={pointedDashArray}
-        strokeOpacity={1}
+        strokeWidth={strokeStyle.strokeWidth * 4}
+        strokeDasharray={glowDashArray}
+        strokeOpacity={0.25}
         style={{
           '--path-length': `${actualPathLength}px`,
           animation: `strokeTrace ${duration}s linear infinite`,
           animationPlayState: active ? 'running' : 'paused',
-          filter: `drop-shadow(0 0 ${glowBlur * 1.5}px rgba(${r}, ${g}, ${b}, ${glowOpacity * 1.2}))`,
+          filter: `blur(8px) drop-shadow(0 0 ${glowBlur * 4}px rgba(${r}, ${g}, ${b}, 0.8))`,
         }}
       />
     );
@@ -1065,11 +1153,13 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         }}
         viewBox={`${-spacing} ${-spacing} ${width + spacing * 2} ${height + spacing * 2}`}
       >
+        {renderSoftHead()}
         {/* Outer stroke */}
         {renderPath(spacing, 0.8, '', true)}
         {/* Inner stroke */}
         {renderPath(-spacing * 0.5, 1)}
         {renderPointedHead()}
+        {renderFlatHead()}
       </svg>
     );
   }
@@ -1088,6 +1178,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         }}
         viewBox={`-4 -4 ${width + 8} ${height + 8}`}
       >
+        {renderSoftHead()}
         {/* Outer glow */}
         {renderPath(6, 0.2, `blur(6px)`, true)}
         {/* Middle glow */}
@@ -1095,6 +1186,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         {/* Core stroke */}
         {renderPath(0, 1, `drop-shadow(0 0 ${glowBlur * 2}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))`)}
         {renderPointedHead()}
+        {renderFlatHead()}
       </svg>
     );
   }
@@ -1143,8 +1235,10 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         }}
         viewBox={`-4 -4 ${width + 8} ${height + 8}`}
       >
+        {renderSoftHead()}
         {paths}
         {renderPointedHead()}
+        {renderFlatHead()}
       </svg>
     );
   }
@@ -1162,8 +1256,10 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
       }}
       viewBox={`-4 -4 ${width + 8} ${height + 8}`}
     >
+      {renderSoftHead()}
       {renderPath(0, 1, '', true)}
       {renderPointedHead()}
+      {renderFlatHead()}
     </svg>
   );
 }
