@@ -338,23 +338,11 @@ function getEffectIntensity(duration, hovered = false) {
 
 const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 'bubble', 'none'];
 
-const LINE_STYLES = ['solid', 'dotted', 'dashed', 'scribble', 'double', 'wavy', 'glow', 'tapered'];
+const LINE_STYLES = ['solid', 'scribble', 'double', 'wavy', 'glow', 'tapered'];
 
 // Get SVG stroke properties for different line styles
 function getStrokeStyle(lineStyle, baseStrokeWidth = 2) {
   switch (lineStyle) {
-    case 'dotted':
-      return {
-        strokeDasharray: `${baseStrokeWidth}, ${baseStrokeWidth * 3}`,
-        strokeLinecap: 'round',
-        strokeWidth: baseStrokeWidth,
-      };
-    case 'dashed':
-      return {
-        strokeDasharray: `${baseStrokeWidth * 4}, ${baseStrokeWidth * 2}`,
-        strokeLinecap: 'butt',
-        strokeWidth: baseStrokeWidth,
-      };
     case 'double':
       // Double lines are rendered as two separate paths
       return {
@@ -955,52 +943,8 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
     strokeLinecap: strokeStyle.strokeLinecap,
   };
 
-  // Build stroke-dasharray based on line style
-  let dashArray;
-  if (strokeStyle.strokeDasharray !== 'none') {
-    // For dotted/dashed, we need to combine with the trail effect
-    // Use a repeating pattern within the visible trail portion
-    dashArray = strokeStyle.strokeDasharray;
-  } else {
-    // For solid-based styles, use trail animation
-    dashArray = `${trailLength} ${gapLength}`;
-  }
-
-  // Render dotted/dashed styles with trail fade effect
-  // Multiple segments at different time offsets create the fading trail
-  const renderDottedDashedPaths = () => {
-    const segments = 8; // Number of trail segments
-    const paths = [];
-
-    for (let i = 0; i < segments; i++) {
-      const t = i / segments; // 0 to ~0.875
-      // Opacity fades from 1 at head (i=0) to near 0 at tail
-      const segOpacity = Math.pow(1 - t, 1.5); // Ease-out curve for natural fade
-      // Each segment is offset in the animation (trails behind)
-      const segDelay = t * 0.25 * duration; // Trail covers 25% of the path
-
-      paths.push(
-        <path
-          key={i}
-          d={path}
-          {...baseStrokeProps}
-          stroke={`rgb(${r}, ${g}, ${b})`}
-          strokeWidth={strokeStyle.strokeWidth}
-          strokeDasharray={strokeStyle.strokeDasharray}
-          strokeOpacity={segOpacity}
-          style={{
-            '--path-length': `${estimatedPathLength}px`,
-            animation: `strokeTrace ${duration}s linear infinite`,
-            animationDelay: `-${segDelay}s`,
-            animationPlayState: active ? 'running' : 'paused',
-            filter: i === 0 ? `drop-shadow(0 0 ${glowBlur}px rgba(${r}, ${g}, ${b}, ${glowOpacity}))` : 'none',
-          }}
-        />
-      );
-    }
-
-    return paths;
-  };
+  // Trail animation dash array
+  const dashArray = `${trailLength} ${gapLength}`;
 
   const renderPath = (offset = 0, opacity = 1, extraFilter = '') => {
     const strokeWidth = strokeStyle.strokeWidth + offset;
@@ -1120,26 +1064,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
     );
   }
 
-  // For dotted/dashed styles, use multi-segment trail fade effect
-  if (lineStyle === 'dotted' || lineStyle === 'dashed') {
-    return (
-      <svg
-        style={{
-          position: 'absolute',
-          inset: '-4px',
-          width: 'calc(100% + 8px)',
-          height: 'calc(100% + 8px)',
-          pointerEvents: 'none',
-          overflow: 'visible',
-        }}
-        viewBox={`-4 -4 ${width + 8} ${height + 8}`}
-      >
-        {renderDottedDashedPaths()}
-      </svg>
-    );
-  }
-
-  // Default rendering for solid (via SVG), wavy, scribble
+  // Default rendering for solid, wavy, scribble
   return (
     <svg
       style={{

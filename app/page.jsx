@@ -46,8 +46,8 @@ const themeToggleStyle = {
 const PARTICLE_EFFECTS = ['sparkler', 'comet', 'stardust', 'ember', 'electric', 'bubble']
 const PARTICLE_COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', '#22c55e']
 
-const LINE_STYLES = ['solid', 'dotted', 'dashed', 'scribble', 'double', 'wavy', 'glow', 'tapered']
-const LINE_STYLE_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4', '#ec4899', '#14b8a6']
+const LINE_STYLES = ['solid', 'scribble', 'double', 'wavy', 'glow', 'tapered']
+const LINE_STYLE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6']
 
 export default function Home() {
   const [isActive, setIsActive] = useState(true)
@@ -219,8 +219,8 @@ export default function Home() {
       <section style={sectionStyle}>
         <div style={labelStyle}>Line Styles on Circle</div>
         <div style={gridStyle}>
-          <ActivityCard shape="circle" lineStyle="dotted" color="#22c55e">
-            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Dotted Circle</span>
+          <ActivityCard shape="circle" lineStyle="double" color="#22c55e">
+            <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Double Circle</span>
           </ActivityCard>
           <ActivityCard shape="circle" lineStyle="wavy" color="#8b5cf6">
             <span style={{ color: 'var(--text-color)', textAlign: 'center' }}>Wavy Circle</span>
@@ -385,19 +385,19 @@ export default function Home() {
           Particle effects can be combined with different line styles for unique visual combinations.
         </p>
         <div style={gridStyle}>
-          <ActivityCard color="#f59e0b" particleEffect="sparkler" lineStyle="dashed">
+          <ActivityCard color="#f59e0b" particleEffect="sparkler" lineStyle="double">
             <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Sparkler + Dashed</div>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Sparkler + Double</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Festive sparkles with dashed trail
+                Festive sparkles with double trail
               </div>
             </div>
           </ActivityCard>
-          <ActivityCard color="#3b82f6" particleEffect="comet" lineStyle="dotted">
+          <ActivityCard color="#3b82f6" particleEffect="comet" lineStyle="glow">
             <div style={{ textAlign: 'center', color: 'var(--text-color)' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Comet + Dotted</div>
+              <div style={{ fontSize: '1rem', fontWeight: 'bold' }}>Comet + Glow</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                Cosmic comet with dotted path
+                Cosmic comet with glowing path
               </div>
             </div>
           </ActivityCard>

@@ -103,9 +103,9 @@ test.describe('ActivityCard Demo Page', () => {
       // Default should be solid
       await expect(section.locator('text=Line:').first()).toBeVisible();
 
-      // Change to dotted
-      await select.selectOption('dotted');
-      await expect(section.locator('strong:has-text("Dotted")')).toBeVisible();
+      // Change to scribble
+      await select.selectOption('scribble');
+      await expect(section.locator('strong:has-text("Scribble")')).toBeVisible();
 
       // Change to wavy
       await select.selectOption('wavy');

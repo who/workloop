@@ -48,16 +48,6 @@ describe('ActivityCard', () => {
     expect(screen.getByText('Solid Line Card')).toBeDefined();
   });
 
-  it('renders with lineStyle="dotted"', () => {
-    render(<ActivityCard lineStyle="dotted">Dotted Line Card</ActivityCard>);
-    expect(screen.getByText('Dotted Line Card')).toBeDefined();
-  });
-
-  it('renders with lineStyle="dashed"', () => {
-    render(<ActivityCard lineStyle="dashed">Dashed Line Card</ActivityCard>);
-    expect(screen.getByText('Dashed Line Card')).toBeDefined();
-  });
-
   it('renders with lineStyle="scribble"', () => {
     render(<ActivityCard lineStyle="scribble">Scribble Line Card</ActivityCard>);
     expect(screen.getByText('Scribble Line Card')).toBeDefined();
@@ -84,7 +74,7 @@ describe('ActivityCard', () => {
   });
 
   it('renders with lineStyle on circle shape', () => {
-    render(<ActivityCard shape="circle" lineStyle="dotted">Circle Dotted Card</ActivityCard>);
-    expect(screen.getByText('Circle Dotted Card')).toBeDefined();
+    render(<ActivityCard shape="circle" lineStyle="wavy">Circle Wavy Card</ActivityCard>);
+    expect(screen.getByText('Circle Wavy Card')).toBeDefined();
   });
 });
