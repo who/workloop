@@ -1,15 +1,146 @@
-# workloop
+# ActivityCard
 
-A visualizer for showing input and output of workers in a system
+A React component library for animated card borders with glowing pulse effects, particle systems, and customizable line styles.
 
-## Tech Stack
+## Features
 
-- **Language**: Typescript
-- **Package Manager**: npm
-- **Framework**: nextjs
-- **Linter**: eslint
+- **Animated border pulse** - A glowing trail that traces the card border, conveying an in-progress or active state
+- **Particle effects** - 6 built-in effects: sparkler, comet, stardust, ember, electric, bubble
+- **Line styles** - 6 stroke styles: solid, scribble, double, wavy, glow, tapered
+- **Head shapes** - 4 pulse head shapes: round, flat, pointed, soft
+- **Shape support** - Rectangle and circle shapes with customizable border radius
+- **Speed-based intensity** - Faster animations automatically produce more intense effects
+- **Hover effects** - Built-in hover states with scale and glow enhancement
+- **Theme support** - Works with light/dark themes
+
+## Demo
+
+[Live Demo](https://workloop-production.up.railway.app/)
+
+## Installation
+
+```bash
+npm install
+```
 
 ## Quick Start
+
+```jsx
+import ActivityCard from './src/components/ActivityCard'
+
+function App() {
+  return (
+    <ActivityCard>
+      <span>Processing...</span>
+    </ActivityCard>
+  )
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `active` | boolean | `true` | Whether the animation is running |
+| `color` | string | `'#3b82f6'` | Border color (hex, rgb, or named color) |
+| `speed` | number \| 'slow' \| 'normal' \| 'fast' | `'normal'` | Animation duration in seconds or preset |
+| `particleEffect` | string | `'none'` | Particle effect type |
+| `shape` | 'rectangle' \| 'circle' | `'rectangle'` | Card shape |
+| `lineStyle` | string | `'solid'` | Border stroke style |
+| `headShape` | string | `'round'` | Pulse head shape |
+| `headSize` | number | `1` | Size multiplier for the pulse head |
+| `particleFollowDistance` | number | `0` | How far particles trail behind the pulse |
+
+### Speed Presets
+
+- `'slow'` - 5 seconds
+- `'normal'` - 3 seconds
+- `'fast'` - 1.5 seconds
+
+Or pass a number for custom duration (0.5 - 8 seconds).
+
+### Particle Effects
+
+- `'sparkler'` - Bursting sparkles that explode outward
+- `'comet'` - Trailing streaks that follow the pulse
+- `'stardust'` - Twinkling floating particles
+- `'ember'` - Rising glowing embers
+- `'electric'` - Crackling electric bolts
+- `'bubble'` - Floating bubbles that rise and wobble
+
+### Line Styles
+
+- `'solid'` - Standard solid stroke
+- `'scribble'` - Hand-drawn wobble effect
+- `'double'` - Two parallel lines
+- `'wavy'` - Sinusoidal wave pattern
+- `'glow'` - Extra bright multi-layer glow
+- `'tapered'` - Stroke that tapers from thick to thin
+
+### Head Shapes
+
+- `'round'` - Rounded stroke cap (default)
+- `'flat'` - Sharp flat edge with bright termination
+- `'pointed'` - Arrow-like tapered point
+- `'soft'` - Diffuse dreamy glow
+
+## Examples
+
+### Basic usage
+
+```jsx
+<ActivityCard>
+  <span>Default card</span>
+</ActivityCard>
+```
+
+### Custom color and speed
+
+```jsx
+<ActivityCard color="#22c55e" speed="fast">
+  <span>Fast green card</span>
+</ActivityCard>
+```
+
+### With particle effects
+
+```jsx
+<ActivityCard color="#f59e0b" particleEffect="sparkler">
+  <span>Sparkler effect</span>
+</ActivityCard>
+```
+
+### Circle shape with custom line style
+
+```jsx
+<ActivityCard shape="circle" lineStyle="wavy" color="#8b5cf6">
+  <span>Wavy circle</span>
+</ActivityCard>
+```
+
+### Combined effects
+
+```jsx
+<ActivityCard
+  color="#3b82f6"
+  particleEffect="comet"
+  lineStyle="glow"
+  headShape="pointed"
+  speed={2}
+>
+  <span>Comet + Glow</span>
+</ActivityCard>
+```
+
+### Inactive state
+
+```jsx
+<ActivityCard active={false}>
+  <span>Paused</span>
+</ActivityCard>
+```
+
+## Development
 
 ```bash
 # Install dependencies
@@ -24,78 +155,6 @@ npm test
 # Lint code
 npm run lint
 ```
-
-## Workflow
-
-This project uses beads (`bd`) for issue tracking and Ralph automation loops for implementation.
-
-### Kickstart Your Feature
-
-Run `./ortus/idea.sh` to start. You'll be asked whether you have a PRD or just an idea:
-
-**Option 1: You have a PRD (non-interactive)**
-```bash
-./ortus/idea.sh --prd path/to/your-prd.md
-```
-Your PRD will be automatically decomposed into a beads issue graph:
-- Creates an epic with hierarchical implementation tasks
-- Sets up proper dependencies between issues
-- Uses parallel sub-agents for efficient issue creation
-- Runs in automated mode (no permission prompts)
-
-**Option 1b: You have a PRD (interactive)**
-```bash
-./ortus/idea.sh
-# Choose [1] "Yes, I have a PRD"
-# Provide the path to your PRD file
-```
-
-**Option 2: You have an idea**
-```bash
-./ortus/idea.sh "Your feature idea"
-# Or run ./ortus/idea.sh and choose [2] "Nope, just an idea"
-```
-Claude will:
-1. Expand your idea into a feature description
-2. Run an interactive interview to clarify requirements
-3. Generate a PRD document
-4. Create implementation tasks from the PRD
-
-### Implement with Ralph
-
-Once tasks exist, run the implementation loop:
-
-```bash
-./ortus/ralph.sh
-```
-
-Ralph picks up tasks and implements them one by one, running tests and committing changes.
-
-### Issue Tracking Commands
-
-```bash
-bd list              # List all issues
-bd ready             # Show issues ready to work
-bd show <id>         # View issue details
-bd stats             # Project statistics
-```
-
-## Project Structure
-
-```
-workloop/
-├── src/                  # Source code
-├── tests/                # Test suite
-├── ortus/                # Ortus automation scripts and prompts
-│   └── prompts/          # AI prompt templates
-├── prd/                  # Product requirements documents
-├── .beads/               # Issue tracking data
-└── .claude/              # Claude Code settings
-```
-
-## Repository
-
-[who/workloop](https://github.com/who/workloop)
 
 ## License
 
