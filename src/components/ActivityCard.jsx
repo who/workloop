@@ -1029,11 +1029,12 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
     // Each layer is progressively shorter and narrower to create a taper
     const layers = [];
     const baseWidth = strokeStyle.strokeWidth;
+    const sizeMultiplier = strokeStyle.headSize || 1;
 
     for (let i = 0; i < 4; i++) {
       const fraction = 1 - (i / 4);
-      const layerLength = trailLength * 0.08 * fraction;
-      const layerWidth = baseWidth * (2.5 - i * 0.5);
+      const layerLength = trailLength * 0.08 * fraction * sizeMultiplier;
+      const layerWidth = baseWidth * (2.5 - i * 0.5) * sizeMultiplier;
       const layerGap = gapLength + trailLength - layerLength;
       const layerDashArray = `${layerLength} ${layerGap}`;
       const layerOpacity = 0.4 + (i * 0.15);
@@ -1059,7 +1060,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
     }
 
     // Add a bright tip at the very front
-    const tipLength = trailLength * 0.02;
+    const tipLength = trailLength * 0.02 * sizeMultiplier;
     const tipGap = gapLength + trailLength - tipLength;
     layers.push(
       <path
@@ -1068,7 +1069,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         fill="none"
         strokeLinecap="round"
         stroke="#ffffff"
-        strokeWidth={baseWidth * 0.8}
+        strokeWidth={baseWidth * 0.8 * sizeMultiplier}
         strokeDasharray={`${tipLength} ${tipGap}`}
         strokeOpacity={0.9}
         style={{
@@ -1086,8 +1087,9 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // For flat shape, render a sharp bright edge at the head
   const renderFlatHead = () => {
     if (headShape !== 'flat') return null;
+    const sizeMultiplier = strokeStyle.headSize || 1;
     // Create a sharp, bright edge at the front to emphasize the flat termination
-    const edgeLength = trailLength * 0.015;
+    const edgeLength = trailLength * 0.015 * sizeMultiplier;
     const edgeGap = gapLength + trailLength - edgeLength;
     const edgeDashArray = `${edgeLength} ${edgeGap}`;
 
@@ -1097,7 +1099,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         fill="none"
         strokeLinecap="butt"
         stroke="#ffffff"
-        strokeWidth={strokeStyle.strokeWidth * 1.8}
+        strokeWidth={strokeStyle.strokeWidth * 1.8 * sizeMultiplier}
         strokeDasharray={edgeDashArray}
         strokeOpacity={0.95}
         style={{
@@ -1113,8 +1115,9 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // For soft shape, render an additional diffuse glow at the head
   const renderSoftHead = () => {
     if (headShape !== 'soft') return null;
+    const sizeMultiplier = strokeStyle.headSize || 1;
     // Create a prominent diffuse glow at the head for a dreamy effect
-    const glowLength = trailLength * 0.3;
+    const glowLength = trailLength * 0.3 * sizeMultiplier;
     const glowGap = gapLength + trailLength - glowLength;
     const glowDashArray = `${glowLength} ${glowGap}`;
 
@@ -1124,7 +1127,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         fill="none"
         strokeLinecap="round"
         stroke={`rgb(${r}, ${g}, ${b})`}
-        strokeWidth={strokeStyle.strokeWidth * 4}
+        strokeWidth={strokeStyle.strokeWidth * 4 * sizeMultiplier}
         strokeDasharray={glowDashArray}
         strokeOpacity={0.25}
         style={{
