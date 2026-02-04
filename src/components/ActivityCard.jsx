@@ -786,7 +786,7 @@ function getCornerPosition(cornerX, cornerY, radius, angleDeg) {
   };
 }
 
-function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, particleFollowDistance = 1) {
+function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, particleFollowDistance = 0) {
   if (effect === 'none' || !PARTICLE_EFFECTS.includes(effect)) {
     return [];
   }
@@ -801,7 +801,8 @@ function generateBorderParticles(effect, rgb, effectIntensity, duration, shape, 
     particleBlurMultiplier: blurMult,
   } = effectIntensity;
 
-  // Base trail distance (15% of path), scaled by particleFollowDistance prop
+  // Base trail distance as percentage of path
+  // particleFollowDistance=0 means particles at head, higher values = particles trail further behind
   const baseTrailDistance = 0.15 * particleFollowDistance;
 
   // Particles follow the pulse head with slight offsets
@@ -1251,7 +1252,7 @@ function BorderParticles({ particles, active, duration, shape, width, height, bo
   );
 }
 
-function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid', particleFollowDistance = 1 }) {
+function ActivityCard({ children, active = true, color = '#3b82f6', speed = 'normal', particleEffect = 'none', shape = 'rectangle', lineStyle = 'solid', particleFollowDistance = 0 }) {
   const [rgb, setRgb] = useState(DEFAULT_RGB);
   const [hovered, setHovered] = useState(false);
 
