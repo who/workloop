@@ -49,6 +49,56 @@ const PARTICLE_COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', 
 const LINE_STYLES = ['solid', 'scribble', 'double', 'wavy', 'glow', 'tapered']
 const LINE_STYLE_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6']
 
+const HEAD_SHAPES = ['round', 'flat', 'pointed', 'soft']
+const SHAPES = ['rectangle', 'circle']
+const COLOR_PRESETS = [
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Amber', value: '#f59e0b' },
+  { name: 'Purple', value: '#8b5cf6' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Cyan', value: '#06b6d4' },
+  { name: 'Teal', value: '#14b8a6' },
+]
+
+const controlLabelStyle = {
+  fontSize: '0.75rem',
+  color: 'var(--text-muted)',
+  marginBottom: '0.25rem',
+  display: 'block',
+}
+
+const controlGroupStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '0.25rem',
+}
+
+const selectStyle = {
+  padding: '0.5rem',
+  fontSize: '0.875rem',
+  borderRadius: '6px',
+  border: '1px solid var(--text-muted)',
+  backgroundColor: 'var(--bg-color)',
+  color: 'var(--text-color)',
+  cursor: 'pointer',
+  minWidth: '120px',
+}
+
+const sliderContainerStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+}
+
+const sliderValueStyle = {
+  fontSize: '0.75rem',
+  color: 'var(--text-muted)',
+  minWidth: '40px',
+  textAlign: 'right',
+}
+
 export default function Home() {
   const [isActive, setIsActive] = useState(true)
   const [customSpeed, setCustomSpeed] = useState(3)
@@ -56,6 +106,17 @@ export default function Home() {
   const [selectedLineStyle, setSelectedLineStyle] = useState('solid')
   const { theme, setTheme, resolvedTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+
+  // Interactive playground state
+  const [playgroundActive, setPlaygroundActive] = useState(true)
+  const [playgroundColor, setPlaygroundColor] = useState('#3b82f6')
+  const [playgroundSpeed, setPlaygroundSpeed] = useState(3)
+  const [playgroundParticleEffect, setPlaygroundParticleEffect] = useState('none')
+  const [playgroundShape, setPlaygroundShape] = useState('rectangle')
+  const [playgroundLineStyle, setPlaygroundLineStyle] = useState('solid')
+  const [playgroundHeadShape, setPlaygroundHeadShape] = useState('round')
+  const [playgroundHeadSize, setPlaygroundHeadSize] = useState(1)
+  const [playgroundParticleFollowDistance, setPlaygroundParticleFollowDistance] = useState(0)
 
   useEffect(() => {
     setMounted(true)
@@ -88,6 +149,200 @@ export default function Home() {
       <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>
         A card component with a glowing trail that traces the border, conveying an in-progress state.
       </p>
+
+      {/* Interactive Playground */}
+      <section style={{ ...sectionStyle, padding: '1.5rem', backgroundColor: 'rgba(128, 128, 128, 0.05)', borderRadius: '12px', border: '1px solid var(--text-muted)' }}>
+        <div style={{ ...labelStyle, fontSize: '1rem', marginBottom: '1rem' }}>Interactive Playground</div>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+          Explore all configuration options in real-time. Adjust the controls below to see how different combinations affect the appearance.
+        </p>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'flex-start' }}>
+          {/* Preview Card */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <ActivityCard
+              active={playgroundActive}
+              color={playgroundColor}
+              speed={playgroundSpeed}
+              particleEffect={playgroundParticleEffect}
+              shape={playgroundShape}
+              lineStyle={playgroundLineStyle}
+              headShape={playgroundHeadShape}
+              headSize={playgroundHeadSize}
+              particleFollowDistance={playgroundParticleFollowDistance}
+            >
+              <div style={{ textAlign: 'center', color: 'var(--text-color)', padding: '1rem' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>Preview</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {playgroundShape} • {playgroundLineStyle} • {playgroundHeadShape}
+                </div>
+              </div>
+            </ActivityCard>
+            <button
+              onClick={() => setPlaygroundActive(!playgroundActive)}
+              style={{
+                ...toggleButtonStyle,
+                marginTop: 0,
+                backgroundColor: playgroundActive ? '#22c55e' : '#6b7280',
+              }}
+            >
+              {playgroundActive ? 'Active' : 'Inactive'}
+            </button>
+          </div>
+
+          {/* Controls Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '1rem', flex: 1, minWidth: '300px' }}>
+            {/* Shape */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Shape</label>
+              <select
+                value={playgroundShape}
+                onChange={(e) => setPlaygroundShape(e.target.value)}
+                style={selectStyle}
+              >
+                {SHAPES.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Line Style */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Line Style</label>
+              <select
+                value={playgroundLineStyle}
+                onChange={(e) => setPlaygroundLineStyle(e.target.value)}
+                style={selectStyle}
+              >
+                {LINE_STYLES.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Head Shape */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Head Shape</label>
+              <select
+                value={playgroundHeadShape}
+                onChange={(e) => setPlaygroundHeadShape(e.target.value)}
+                style={selectStyle}
+              >
+                {HEAD_SHAPES.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Particle Effect */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Particle Effect</label>
+              <select
+                value={playgroundParticleEffect}
+                onChange={(e) => setPlaygroundParticleEffect(e.target.value)}
+                style={selectStyle}
+              >
+                <option value="none">None</option>
+                {PARTICLE_EFFECTS.map((s) => (
+                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Color */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Color</label>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="color"
+                  value={playgroundColor}
+                  onChange={(e) => setPlaygroundColor(e.target.value)}
+                  style={{ width: '36px', height: '36px', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: 0 }}
+                />
+                <select
+                  value={COLOR_PRESETS.find(c => c.value === playgroundColor)?.value || ''}
+                  onChange={(e) => e.target.value && setPlaygroundColor(e.target.value)}
+                  style={{ ...selectStyle, minWidth: '80px' }}
+                >
+                  <option value="">Custom</option>
+                  {COLOR_PRESETS.map((c) => (
+                    <option key={c.value} value={c.value}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Speed */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Speed (seconds)</label>
+              <div style={sliderContainerStyle}>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="8"
+                  step="0.5"
+                  value={playgroundSpeed}
+                  onChange={(e) => setPlaygroundSpeed(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={sliderValueStyle}>{playgroundSpeed}s</span>
+              </div>
+            </div>
+
+            {/* Head Size */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Head Size</label>
+              <div style={sliderContainerStyle}>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3"
+                  step="0.25"
+                  value={playgroundHeadSize}
+                  onChange={(e) => setPlaygroundHeadSize(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={sliderValueStyle}>{playgroundHeadSize}x</span>
+              </div>
+            </div>
+
+            {/* Particle Follow Distance */}
+            <div style={controlGroupStyle}>
+              <label style={controlLabelStyle}>Particle Trail</label>
+              <div style={sliderContainerStyle}>
+                <input
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.5"
+                  value={playgroundParticleFollowDistance}
+                  onChange={(e) => setPlaygroundParticleFollowDistance(parseFloat(e.target.value))}
+                  style={{ flex: 1 }}
+                />
+                <span style={sliderValueStyle}>{playgroundParticleFollowDistance}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Current Props Display */}
+        <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'rgba(0, 0, 0, 0.2)', borderRadius: '8px', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+          <div style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Current Props:</div>
+          <code style={{ color: 'var(--text-color)' }}>
+            {`<ActivityCard`}
+            {!playgroundActive && ` active={false}`}
+            {playgroundColor !== '#3b82f6' && ` color="${playgroundColor}"`}
+            {playgroundSpeed !== 3 && ` speed={${playgroundSpeed}}`}
+            {playgroundParticleEffect !== 'none' && ` particleEffect="${playgroundParticleEffect}"`}
+            {playgroundShape !== 'rectangle' && ` shape="${playgroundShape}"`}
+            {playgroundLineStyle !== 'solid' && ` lineStyle="${playgroundLineStyle}"`}
+            {playgroundHeadShape !== 'round' && ` headShape="${playgroundHeadShape}"`}
+            {playgroundHeadSize !== 1 && ` headSize={${playgroundHeadSize}}`}
+            {playgroundParticleFollowDistance !== 0 && ` particleFollowDistance={${playgroundParticleFollowDistance}}`}
+            {` />`}
+          </code>
+        </div>
+      </section>
 
       {/* Default Props */}
       <section style={sectionStyle}>
