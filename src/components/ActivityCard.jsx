@@ -962,15 +962,25 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   const [r, g, b] = rgb;
   const strokeStyle = getStrokeStyle(lineStyle, 2, headShape, headSize);
   const { glowBlur, glowOpacity } = effectIntensity;
+  const pathRef = useRef(null);
+  const [pathLength, setPathLength] = useState(null);
 
-  // Estimate path length for animation (will be more accurate with actual measurement)
-  const estimatedPathLength = lineStyle === 'wavy' || lineStyle === 'scribble'
-    ? (2 * (width + height) * 1.1)
-    : (2 * (width + height));
+  // Measure actual path length for accurate animation
+  // getTotalLength() may not be available in test environments (jsdom)
+  useEffect(() => {
+    if (pathRef.current && typeof pathRef.current.getTotalLength === 'function') {
+      const actualLength = pathRef.current.getTotalLength();
+      setPathLength(actualLength);
+    }
+  }, [path]);
+
+  // Fallback to estimate until we measure the actual path
+  const estimatedPathLength = 2 * (width + height) * 1.1;
+  const actualPathLength = pathLength || estimatedPathLength;
 
   // Trail length as percentage of path (25% visible trail)
-  const trailLength = estimatedPathLength * 0.25;
-  const gapLength = estimatedPathLength * 0.75;
+  const trailLength = actualPathLength * 0.25;
+  const gapLength = actualPathLength * 0.75;
 
   // Base filter for the shape
   const getBaseFilter = () => {
@@ -989,10 +999,10 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
   // Trail animation dash array
   const dashArray = `${trailLength} ${gapLength}`;
 
-  const renderPath = (offset = 0, opacity = 1, extraFilter = '') => {
+  const renderPath = (offset = 0, opacity = 1, extraFilter = '', useRef = false) => {
     const strokeWidth = strokeStyle.strokeWidth + offset;
     const style = {
-      '--path-length': `${estimatedPathLength}px`,
+      '--path-length': `${actualPathLength}px`,
       animation: `strokeTrace ${duration}s linear infinite`,
       animationPlayState: active ? 'running' : 'paused',
       filter: extraFilter || getBaseFilter(),
@@ -1000,6 +1010,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
 
     return (
       <path
+        ref={useRef ? pathRef : undefined}
         d={path}
         {...baseStrokeProps}
         stroke={`rgb(${r}, ${g}, ${b})`}
@@ -1029,7 +1040,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         strokeDasharray={pointedDashArray}
         strokeOpacity={1}
         style={{
-          '--path-length': `${estimatedPathLength}px`,
+          '--path-length': `${actualPathLength}px`,
           animation: `strokeTrace ${duration}s linear infinite`,
           animationPlayState: active ? 'running' : 'paused',
           filter: `drop-shadow(0 0 ${glowBlur * 1.5}px rgba(${r}, ${g}, ${b}, ${glowOpacity * 1.2}))`,
@@ -1055,7 +1066,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         viewBox={`${-spacing} ${-spacing} ${width + spacing * 2} ${height + spacing * 2}`}
       >
         {/* Outer stroke */}
-        {renderPath(spacing, 0.8)}
+        {renderPath(spacing, 0.8, '', true)}
         {/* Inner stroke */}
         {renderPath(-spacing * 0.5, 1)}
         {renderPointedHead()}
@@ -1078,7 +1089,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
         viewBox={`-4 -4 ${width + 8} ${height + 8}`}
       >
         {/* Outer glow */}
-        {renderPath(6, 0.2, `blur(6px)`)}
+        {renderPath(6, 0.2, `blur(6px)`, true)}
         {/* Middle glow */}
         {renderPath(3, 0.4, `blur(3px)`)}
         {/* Core stroke */}
@@ -1103,6 +1114,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
       paths.push(
         <path
           key={i}
+          ref={i === 0 ? pathRef : undefined}
           d={path}
           {...baseStrokeProps}
           stroke={`rgb(${r}, ${g}, ${b})`}
@@ -1110,7 +1122,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
           strokeDasharray={`${trailLength / segments} ${gapLength + trailLength * (segments - 1) / segments}`}
           strokeOpacity={segOpacity}
           style={{
-            '--path-length': `${estimatedPathLength}px`,
+            '--path-length': `${actualPathLength}px`,
             animation: `strokeTrace ${duration}s linear infinite`,
             animationDelay: `-${segDelay}s`,
             animationPlayState: active ? 'running' : 'paused',
@@ -1150,7 +1162,7 @@ function SvgBorder({ path, rgb, duration, active, lineStyle, effectIntensity, wi
       }}
       viewBox={`-4 -4 ${width + 8} ${height + 8}`}
     >
-      {renderPath(0, 1)}
+      {renderPath(0, 1, '', true)}
       {renderPointedHead()}
     </svg>
   );
