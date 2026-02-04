@@ -169,7 +169,7 @@ const keyframesStyle = `
     stroke-dashoffset: var(--path-length);
   }
   to {
-    stroke-dashoffset: calc(var(--path-length) * -1);
+    stroke-dashoffset: 0;
   }
 }
 
@@ -398,11 +398,13 @@ function seededRandom(seed) {
 // Path must start at top center to match conic-gradient origin (0deg = top)
 function getBorderPath(shape, width, height, borderRadius) {
   if (shape === 'circle') {
-    // For circle, use a circular path starting from top center, going clockwise
+    // For circle, use two semicircular arcs starting from top center, going clockwise
+    // Using two arcs instead of one ensures a proper closed path
     const cx = width / 2;
     const cy = height / 2;
     const r = Math.min(width, height) / 2;
-    return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.001} ${cy - r}`;
+    // Start at top, arc to bottom, then arc back to top and close
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 0 1 ${cx} ${cy + r} A ${r} ${r} 0 0 1 ${cx} ${cy - r} Z`;
   }
   // For rectangle with border radius
   // Start from top center and go clockwise to match conic-gradient
@@ -417,7 +419,7 @@ function getBorderPath(shape, width, height, borderRadius) {
           Q 0 ${height} 0 ${height - r}
           L 0 ${r}
           Q 0 0 ${r} 0
-          L ${midX} 0`;
+          Z`;
 }
 
 // Generate a wavy version of a path by adding sinusoidal offsets
@@ -430,7 +432,7 @@ function getWavyPath(shape, width, height, borderRadius, amplitude = 3, frequenc
     const segments = Math.max(60, Math.floor(circumference / 4));
 
     let path = '';
-    for (let i = 0; i <= segments; i++) {
+    for (let i = 0; i < segments; i++) {
       // Start from top center (-90 degrees / -PI/2)
       const angle = -Math.PI / 2 + (i / segments) * 2 * Math.PI;
       const wave = Math.sin((i / segments) * frequency * Math.PI) * amplitude;
@@ -444,6 +446,8 @@ function getWavyPath(shape, width, height, borderRadius, amplitude = 3, frequenc
         path += ` L ${x} ${y}`;
       }
     }
+    // Close path to connect end to start
+    path += ' Z';
     return path;
   }
 
@@ -540,9 +544,11 @@ function getWavyPath(shape, width, height, borderRadius, amplitude = 3, frequenc
   }
 
   let path = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
+  for (let i = 1; i < points.length - 1; i++) {
     path += ` L ${points[i].x} ${points[i].y}`;
   }
+  // Close path to connect end to start
+  path += ' Z';
   return path;
 }
 
@@ -557,7 +563,7 @@ function getScribblePath(shape, width, height, borderRadius, seed = 42) {
     const r = Math.min(width, height) / 2;
 
     let path = '';
-    for (let i = 0; i <= segments; i++) {
+    for (let i = 0; i < segments; i++) {
       const angle = -Math.PI / 2 + (i / segments) * 2 * Math.PI;
       // Use seeded random for consistent wobble
       const wobble = (seededRandom(seed + i * 7) - 0.5) * amplitude * 2;
@@ -571,6 +577,8 @@ function getScribblePath(shape, width, height, borderRadius, seed = 42) {
         path += ` L ${x} ${y}`;
       }
     }
+    // Close path to connect end to start
+    path += ' Z';
     return path;
   }
 
@@ -652,9 +660,11 @@ function getScribblePath(shape, width, height, borderRadius, seed = 42) {
   }
 
   let path = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 1; i < points.length; i++) {
+  for (let i = 1; i < points.length - 1; i++) {
     path += ` L ${points[i].x} ${points[i].y}`;
   }
+  // Close path to connect end to start
+  path += ' Z';
   return path;
 }
 
